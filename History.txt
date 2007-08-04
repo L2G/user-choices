@@ -1,0 +1,2 @@
+Version 1.0.0
+  * Version from _Everyday Scripting with Ruby_
