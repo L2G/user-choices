@@ -11,13 +11,17 @@ include UserChoices
 
 class MultipleSourcesExample < Command
 
-  # Here are the three sources currently available. 
+  # Here are the four sources currently available. 
   #
   # EnvironmentChoices is initialized with a prefix. If a choice is
   # named "foo" and the prefix is "ms_", then the value of
   # ENV["ms_foo"] initializes user_choices[:foo].
   #
-  # XmlConfigFileChoices reads from a given file. The choices in the
+  # YamlConfigFileChoices reads from a given YAML file. The choices in the
+  # config file have the same spelling as the choice name (without the
+  # colon in front of the symbol).
+  #
+  # XmlConfigFileChoices reads from a given XML file. The choices in the
   # config file have the same spelling as the choice name (without the
   # colon in front of the symbol).
 
@@ -25,6 +29,7 @@ class MultipleSourcesExample < Command
     builder.add_source(CommandLineChoices, :usage,
                        "Usage ruby #{$0} [options] names...")
     builder.add_source(EnvironmentChoices, :with_prefix, "ms_")
+    builder.add_source(YamlConfigFileChoices, :from_file, "ms-config.yml")
     builder.add_source(XmlConfigFileChoices, :from_file, "ms-config.xml")
   end
 

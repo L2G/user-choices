@@ -369,7 +369,7 @@ class YamlConfigFileChoicesTestCase < Test::Unit::TestCase
     with_local_config_file('.amazonrc',"foo:\n\tfred") {
       assert_raise_with_matching_message(ArgumentError,
           %r{Badly formatted configuration file ./.amazonrc: .*syntax error}) do
-              pp YamlConfigFileChoices.fill(".amazonrc")
+              pp YamlConfigFileChoices.fill(".amazonrc"), 'should never have been reached'
       end
     }
   end

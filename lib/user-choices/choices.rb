@@ -302,11 +302,10 @@ module UserChoices   # :nodoc
       result
     end
 
-    # YAML doesn't seem to raise exceptions.
     def format_specific_exception?(ex)
       ex.is_a?(ArgumentError)
     end
-    
+
 
 
     def ensure_hash_values_are_strings(h)

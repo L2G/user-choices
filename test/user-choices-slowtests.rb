@@ -79,7 +79,7 @@ class Examples < Test::Unit::TestCase
                  val)
   end
 
-  def test_multiple_sources
+  def test_multiple_sources_xml
     xml = "<config><ordinary_choice>greetings</ordinary_choice></config>"
 
     with_local_config_file("ms-config.xml", xml) {
@@ -96,6 +96,32 @@ class Examples < Test::Unit::TestCase
     
 
     with_local_config_file("ms-config.xml", xml) {
+      with_environment_vars("ms_ordinary_choice" => 'hi') { 
+        val = evalue("#{RUBY}multiple-sources.rb --ordinary-choice hello")
+        assert_equal({:names => [], :ordinary_choice => 'hello'}, val)
+      }
+    }
+
+  end
+
+
+  def test_multiple_sources_yaml
+    yml = "ordinary_choice: greetings"
+
+    with_local_config_file("ms-config.yml", yml) {
+      val = evalue("#{RUBY}multiple-sources.rb")
+      assert_equal({:names => [], :ordinary_choice => 'greetings'}, val)
+    }
+
+    with_local_config_file("ms-config.yml", yml) {
+      with_environment_vars("ms_ordinary_choice" => 'hi') { 
+        val = evalue("#{RUBY}multiple-sources.rb ")
+        assert_equal({:names => [], :ordinary_choice => 'hi'}, val)
+      }
+    }
+    
+
+    with_local_config_file("ms-config.yml", yml) {
       with_environment_vars("ms_ordinary_choice" => 'hi') { 
         val = evalue("#{RUBY}multiple-sources.rb --ordinary-choice hello")
         assert_equal({:names => [], :ordinary_choice => 'hello'}, val)
