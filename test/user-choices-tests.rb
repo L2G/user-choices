@@ -4,6 +4,7 @@ require 's4t-utils'
 require 'builder'
 require 'user-choices'
 include S4tUtils
+require 'extensions/string'
 
 
 class TestExternallyFilledHash < Test::Unit::TestCase
@@ -216,6 +217,67 @@ class EnvironmentChoicesTest < Test::Unit::TestCase
 
 end
 
+# Common behavior for all config files. Using XML as an example.
+class FileChoicesTestCase < Test::Unit::TestCase
+  include UserChoices
+  
+  def setup
+    builder = Builder::XmlMarkup.new(:indent => 2)
+    @some_xml = builder.config {
+      builder.reverse("true")
+      builder.maximum("53")
+      builder.host('a.com')
+      builder.host('b.com')
+    }
+  end
+  
+
+  def test_config_file_need_not_exist
+    assert_false(File.exist?(".amazonrc"))
+    choices = XmlConfigFileChoices.fill(".amazonrc")
+
+    assert_true(choices.empty?)
+  end
+
+
+  def test_value_updating_is_set_up_properly
+    with_local_config_file('.amazonrc', @some_xml) do
+      choices = XmlConfigFileChoices.fill('.amazonrc')
+      choices.update_values(:maximum => :integer)
+      assert_equal(53, choices[:maximum])
+    end
+  end
+
+  def test_unmentioned_values_are_nil
+    with_local_config_file('.amazonrc', @some_xml) do
+      choices = XmlConfigFileChoices.fill('.amazonrc')
+      assert_nil(choices[:unmentioned])
+    end
+  end
+
+  def test_config_file_value_checking_is_set_up_properly
+    with_local_config_file(".amazonrc", @some_xml) do
+      assert_raises_with_matching_message(StandardError,
+           %r{Error in configuration file ./.amazonrc: '53' is not a valid value for 'maximum'}) {
+        choices = XmlConfigFileChoices.fill(".amazonrc")
+        choices.check_values(:maximum => ['low', 'high'])
+      }
+    end
+
+    with_local_config_file(".amazonrc", @some_xml) do
+      assert_raises_with_matching_message(StandardError,
+            /Error in configuration file.* 'reverse' requires an integer value, and 'true' doesn't look like one/) {
+        choices = XmlConfigFileChoices.fill('.amazonrc')
+        choices.check_values(:reverse => :integer)
+      }
+    end
+  end
+
+  
+end
+
+
+
 class XmlConfigFileChoicesTestCase < Test::Unit::TestCase
   include UserChoices
 
@@ -240,13 +302,6 @@ class XmlConfigFileChoicesTestCase < Test::Unit::TestCase
     }
   end
 
-  def test_config_file_need_not_exist
-    assert_false(File.exist?(".amazonrc"))
-    choices = XmlConfigFileChoices.fill(".amazonrc")
-
-    assert_true(choices.empty?)
-  end
-
   def test_config_file_with_bad_xml
     with_local_config_file('.amazonrc',"<malformed></xml>") {
       assert_raise_with_matching_message(REXML::ParseException,
@@ -257,38 +312,68 @@ class XmlConfigFileChoicesTestCase < Test::Unit::TestCase
   end
 
 
-  def test_config_file_value_checking_is_set_up_properly
-    with_local_config_file(".amazonrc", @some_xml) do
-      assert_raises_with_matching_message(StandardError,
-           %r{Error in configuration file ./.amazonrc: '53' is not a valid value for 'maximum'}) {
-        choices = XmlConfigFileChoices.fill(".amazonrc")
-        choices.check_values(:maximum => ['low', 'high'])
-      }
-    end
+end
 
-    with_local_config_file(".amazonrc", @some_xml) do
-      assert_raises_with_matching_message(StandardError,
-            /Error in configuration file.* 'reverse' requires an integer value, and 'true' doesn't look like one/) {
-        choices = XmlConfigFileChoices.fill('.amazonrc')
-        choices.check_values(:reverse => :integer)
-      }
-    end
+
+class YamlConfigFileChoicesTestCase < Test::Unit::TestCase
+  include UserChoices
+
+  def setup
+    @some_yaml = "
+    | ---
+    | reverse: true
+    | maximum: 53
+    | host:
+    |   - a.com
+    |   - b.com
+    | listarg: 1,2, 3
+    ".trim('|')
+  end
+  
+  def test_string_assurance
+    choices = YamlConfigFileChoices.new
+    a = [1]
+    choices.ensure_element_is_string(a, 0)
+    assert_equal(["1"], a)
+    
+    h = {'foo' => false }
+    choices.ensure_element_is_string(h, 'foo')
+    assert_equal({'foo' => 'false'}, h)
+    
+    a = [1, 2.0, true, 'already']
+    choices.ensure_array_values_are_strings(a)
+    assert_equal(['1', '2.0', 'true', 'already'], a)
+
+    h = {'1' => '2', 'false' => true, 99 => 100 }
+    choices.ensure_hash_values_are_strings(h)
+    assert_equal({'1' => '2', 'false' => 'true', 99 => '100' }, h)
+
+    h = {'1' => '2', 'false' => [1, true], 99 => {100 => true}}
+    choices.ensure_hash_values_are_strings(h)
+    assert_equal({'1' => '2', 'false' => ['1', 'true'], 99 => {100 => 'true'} }, h)
+  end
+  
+  def test_config_file_normal_use
+    with_local_config_file('.amazonrc', @some_yaml) {
+      choices = YamlConfigFileChoices.fill(".amazonrc")
+
+      assert_equal(4, choices.size)
+      assert_equal("true", choices[:reverse])
+      assert_equal("53", choices[:maximum])
+      assert_equal(['a.com', 'b.com'], choices[:host])
+      assert_equal("1,2, 3", choices[:listarg])
+    }
   end
 
-  def test_value_updating_is_set_up_properly
-    with_local_config_file('.amazonrc', @some_xml) do
-      choices = XmlConfigFileChoices.fill('.amazonrc')
-      choices.update_values(:maximum => :integer)
-      assert_equal(53, choices[:maximum])
-    end
+  def test_config_file_with_bad_yaml
+    with_local_config_file('.amazonrc',"foo:\n\tfred") {
+      assert_raise_with_matching_message(ArgumentError,
+          %r{Badly formatted configuration file ./.amazonrc: .*syntax error}) do
+              pp YamlConfigFileChoices.fill(".amazonrc")
+      end
+    }
   end
 
-  def test_unmentioned_values_are_nil
-    with_local_config_file('.amazonrc', @some_xml) do
-      choices = XmlConfigFileChoices.fill('.amazonrc')
-      assert_nil(choices[:unmentioned])
-    end
-  end
 
 
 end

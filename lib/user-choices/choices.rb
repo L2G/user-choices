@@ -1,4 +1,5 @@
 require 'xmlsimple'
+require 'yaml'
 require 's4t-utils'
 include S4tUtils
 
@@ -195,33 +196,16 @@ module UserChoices   # :nodoc
       "the environment"
     end
   end
+  
+  class FileChoices < ExternallyFilledHash # :nodoc: 
 
-  # Use an XML file as a source of choices. The XML file is parsed
-  # with <tt>XmlSimple('ForceArray' => false)</tt>. That means that
-  # single elements like <home>Mars</home> are read as the value
-  # <tt>"Mars"</tt>, whereas <home>Mars</home><home>Venus</home> is
-  # read as <tt>["Mars", "Venus"]</tt>.
-  class XmlConfigFileChoices < ExternallyFilledHash
+    # Just a place to hang documentation, really.
+    def self.from_file(filename); subclass_responsibility; end
+
     def self.fill(filename)    # :nodoc:
-      new(filename)
-    end
-
-    # Treat _filename_ as the configuration file. _filename_ is expected
-    # to be in the home directory. The home directory is found in the
-    # same way Rubygems finds it. (First look in environment variables
-    # <tt>$HOME</tt>, <tt>$USERPROFILE</tt>, <tt>$HOMEDRIVE:$HOMEPATH</tt>,
-    # file expansion of <tt>"~"</tt> and finally the root.
-    def self.from_file(filename)
-      fill(filename)
-    end
-
-    def initialize(filename)    # :nodoc:
-      super()
-      @path = File.join(S4tUtils.find_home, filename)
-      read_from_file.each do | external_name, value |
-        sym = external_name.to_inputable_sym
-        @keys_to_external_names[sym] = external_name
-        self[sym] = value
+      prog1(new) do | retval |
+        retval.record_path(filename)
+        retval.make_choices(retval.read_into_hash)
       end
     end
 
@@ -229,14 +213,118 @@ module UserChoices   # :nodoc
       "configuration file #{@path}"
     end
 
-    def read_from_file    # :nodoc:
-      return {} unless File.exist?(@path)
-      begin
-        XmlSimple.xml_in(@path, 'ForceArray' => false)
-      rescue REXML::ParseException => ex
-        message = "Badly formatted #{source}: " + ex.continued_exception
-        raise REXML::ParseException.new(message)
+    def make_choices(hash) # :nodoc: 
+      hash.each do | external_name, value |
+        sym = external_name.to_inputable_sym
+        @keys_to_external_names[sym] = external_name
+        self[sym] = value
       end
     end
+
+    def read_into_hash    # :nodoc:
+      return {} unless File.exist?(@path)
+      begin
+        format_specific_reading
+      rescue Exception => ex
+        if format_specific_exception?(ex)
+          msg = "Badly formatted #{source}: " + format_specific_message(ex)
+          ex = ex.class.new(msg)
+        end
+        raise ex
+      end
+    end
+
+    def record_path(filename)
+      @path = File.join(S4tUtils.find_home, filename)
+    end
+
+    protected 
+    
+    def format_specific_message(ex)
+      ex.message
+    end
+    
+    def format_specific_exception_handling(ex); subclass_responsibility; end
+    def format_specific_reading; subclass_responsibility; end
+  end
+
+  # Use an XML file as a source of choices. The XML file is parsed
+  # with <tt>XmlSimple('ForceArray' => false)</tt>. That means that
+  # single elements like <home>Mars</home> are read as the value
+  # <tt>"Mars"</tt>, whereas <home>Mars</home><home>Venus</home> is
+  # read as <tt>["Mars", "Venus"]</tt>.
+  class XmlConfigFileChoices < FileChoices
+
+    # Treat _filename_ as the configuration file. _filename_ is expected
+    # to be in the home directory. The home directory is found in the
+    # same way Rubygems finds it. (First look in environment variables
+    # <tt>$HOME</tt>, <tt>$USERPROFILE</tt>, <tt>$HOMEDRIVE:$HOMEPATH</tt>,
+    # file expansion of <tt>"~"</tt> and finally the root.)
+    def self.from_file(filename)
+      fill(filename)
+    end
+
+    def format_specific_reading
+      XmlSimple.xml_in(@path, 'ForceArray' => false)
+    end
+    
+    def format_specific_exception?(ex)
+      ex.is_a?(REXML::ParseException)
+    end
+    
+    def format_specific_message(ex)
+      ex.continued_exception
+    end
+      
+  end
+  
+  
+  
+  # Use an YAML file as a source of choices. Note: because the YAML parser
+  # can produce something out of many typo-filled YAML files, it's a 
+  # good idea to check that your file looks like you'd expect before 
+  # trusting in it. Do that with:
+  #
+  #    irb> require 'yaml'
+  #    irb> YAML.load_file('config.yaml')
+  #    
+  class YamlConfigFileChoices < FileChoices
+    # Treat _filename_ as the configuration file. _filename_ is expected
+    # to be in the home directory. The home directory is found in the
+    # same way Rubygems finds it. 
+    def self.from_file(filename)
+      fill(filename)
+    end
+
+    def format_specific_reading
+      result = YAML.load_file(@path)
+      ensure_hash_values_are_strings(result)
+      result
+    end
+
+    # YAML doesn't seem to raise exceptions.
+    def format_specific_exception?(ex)
+      ex.is_a?(ArgumentError)
+    end
+    
+
+
+    def ensure_hash_values_are_strings(h)
+      h.each { |k, v| ensure_element_is_string(h, k) }
+    end
+    
+    def ensure_array_values_are_strings(a)
+      a.each_with_index { |elt, index| ensure_element_is_string(a, index) }
+    end
+
+    def ensure_element_is_string(collection, key)
+      case collection[key]
+        when Hash: ensure_hash_values_are_strings(collection[key])
+        when Array: ensure_array_values_are_strings(collection[key])
+        else collection[key] = collection[key].to_s
+      end
+    end
+      
+    
   end
 end
