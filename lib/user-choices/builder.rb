@@ -57,7 +57,9 @@ module UserChoices
     # called to create an instance of the class. The _args_ are passed
     # to the _factory_method_. 
     def add_source(source, factory_method, *args)
-      @sources << {:source => source, :factory_method => factory_method, :args => args}
+      @sources << {:source => source, 
+                   :factory_method => factory_method, 
+                   :args => args}
     end
 
     # Once sources and choices have been described, this builds and
@@ -69,9 +71,9 @@ module UserChoices
         end
       end
       built_sources << DefaultChoices.fill(@defaults)
-      ComposedChoices.fill(*built_sources) { | c | 
-        c.check_values(@checks)
-        c.update_values(@checks)
+      ComposedChoices.fill(*built_sources) { | all_choices | 
+        all_choices.check_values(@checks)
+        all_choices.update_values(@checks)
       }
     end
     

@@ -464,7 +464,7 @@ class CompositionChoicesTests < Test::Unit::TestCase
     }
   end
 
-  def test_empty_arglists_DO__surprisingly__override_lower_precedence_sources
+  def test_empty_arglists_do_not_override_lower_precedence_sources
     xml = "<config><name>1</name><name>2</name></config>"
     with_local_config_file("test-config", xml) {
       with_command_args("") {
@@ -473,13 +473,12 @@ class CompositionChoicesTests < Test::Unit::TestCase
                       c.uses_arglist(:name)
                     },
                     XmlConfigFileChoices.fill("test-config"))
-        # assert_equal(['1', '2'], choices[:name])
-        assert_equal([], choices[:name])
+        assert_equal(['1', '2'], choices[:name])
       }
     }
   end
 
-  def test_however_non_empty_arglists_do # name suggests what should be expected of the previous test.
+  def test_however_non_empty_arglists_do
     with_command_args("1") {
       choices = ComposedChoices.fill(
                     CommandLineChoices.fill { | c | 
@@ -490,6 +489,17 @@ class CompositionChoicesTests < Test::Unit::TestCase
     }
   end
 
+  def test_choices_from_earlier_defaults_prevent_failing_arglist_arity_check
+    with_command_args("") {
+      choices = ComposedChoices.fill(
+                    CommandLineChoices.fill { | c | 
+                      c.uses_arglist(:name, 1..2)
+                    },
+                    DefaultChoices.fill(:name => ['1']))
+      assert_equal(['1'], choices[:name])
+    }
+    
+  end
 
   
 end
