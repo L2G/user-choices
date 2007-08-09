@@ -15,11 +15,18 @@ class TestDefaultsAndTypes < Test::Unit::TestCase
     assert_equal('5', choices[:trip_steps])
   end
 
+  def test_defaults_need_not_be_strings
+    b = ChoicesBuilder.new
+    b.add_choice(:trip_steps, :default => 5)
+    choices = b.build
+    assert_equal(5, choices[:trip_steps])
+  end
+
   def test_builder_can_declare_types_and_do_error_checking
     b = ChoicesBuilder.new
     b.add_choice(:trip_steps, :default => 'a', :type => :integer)
     assert_raises_with_matching_message(StandardError,
-                                        /':trip_steps' requires an integer value, and 'a'/) {
+                                        /:trip_steps's value must be an integer, and 'a'/) {
       b.build
     }
   end
@@ -36,7 +43,7 @@ class TestDefaultsAndTypes < Test::Unit::TestCase
     b = ChoicesBuilder.new
     b.add_choice(:trip_steps, :default => 'a', :type => ['b', 'c'])
     assert_raises_with_matching_message(StandardError,
-                                        /'a' is not a valid value/) {
+                                        /'a' doesn't look right/) {
       b.build
     }
 
@@ -61,13 +68,96 @@ class TestDefaultsAndTypes < Test::Unit::TestCase
     assert_equal(['a', 'b', 'c'], b.build[:targets])
   end
 
-  def arrays_are_constructed_from_single_elements
+  def test_arrays_are_constructed_from_single_elements
     b = ChoicesBuilder.new
     b.add_choice(:targets, :default => 'a',
                  :type => [:string])
     assert_equal(['a'], b.build[:targets])
   end
+  
+  def test_array_lengths_can_be_specified_exactly
+    b = ChoicesBuilder.new
+    b.add_choice(:targets, :length => 2, :default => ['wrong'])
+    assert_raises_with_matching_message(StandardError, /must be of length 2/) {
+      b.build
+    }
+  end
 
+  def test_array_lengths_can_be_specified_by_range
+    b = ChoicesBuilder.new
+    b.add_choice(:targets, :length => 2..3, :default => ['wrong'])
+    assert_raises_with_matching_message(StandardError, /this range: 2..3/) {
+      b.build
+    }
+  end
+  
+  def test_array_lengths_apply_to_command_line_args # didn't used to, not in the same way.
+    with_command_args("a b c d") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineChoices, :usage, 'foo')
+      b.add_choice(:targets, :length => 2..3) { |command_line |
+        command_line.uses_arglist
+      }
+      
+      output = capturing_stderr do
+        assert_wants_to_exit do    
+          b.build
+        end
+      end
+      assert_match(/Error in the command line: 4 arguments given, 2 or 3 expected/, output)
+    }
+  end
+  
+  def test_missing_required_arg_is_caught_by_command_line
+    with_command_args("") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineChoices, :usage, 'foo')
+      b.add_choice(:targets) { |command_line |
+        command_line.uses_arg
+      }
+      
+      output = capturing_stderr do
+        assert_wants_to_exit do    
+          b.build
+        end
+      end
+      assert_match(/Error in the command line: 0 arguments given, 1 expected/, output)
+    }
+  end
+  
+  def test_extra_required_arg_is_caught_by_command_line
+    with_command_args("one extra") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineChoices, :usage, 'foo')
+      b.add_choice(:targets) { |command_line |
+        command_line.uses_arg
+      }
+      
+      output = capturing_stderr do
+        assert_wants_to_exit do    
+          b.build
+        end
+      end
+      assert_match(/Error in the command line: 2 arguments given, 1 expected/, output)
+    }
+  end
+  
+  def test_extra_optional_arg_is_caught_by_command_line
+    with_command_args("one extra") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineChoices, :usage, 'foo')
+      b.add_choice(:targets) { |command_line |
+        command_line.uses_optional_arg
+      }
+      
+      output = capturing_stderr do
+        assert_wants_to_exit do    
+          b.build
+        end
+      end
+      assert_match(/Error in the command line: 2 arguments given, 0 or 1 expected/, output)
+    }
+  end
 end
 
 class TestChainingOfSources < Test::Unit::TestCase
@@ -96,15 +186,213 @@ class TestChainingOfSources < Test::Unit::TestCase
       }
     }
   end
+  
+  
+  def test_priority_over_default
+    with_command_args("--option perfectly-fine --only-cmd=oc") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineChoices, :usage, "blah, blah")
+      b.add_choice(:option, :default => '0.3') { | command_line |
+        command_line.uses_option('--option VALUE')
+      }
+      b.add_choice(:only_cmd) { |command_line| 
+        command_line.uses_option('--only-cmd VALUE')
+      }
+      b.add_choice(:only_default, :default => 'od')
+      choices = b.build
+      assert_equal("perfectly-fine", choices[:option])
+      assert_equal("oc", choices[:only_cmd])
+      assert_equal("od", choices[:only_default])
+    }
+  end
+
+  def test_checking_is_done_for_all_sources
+    with_command_args("--command-option perfectly-fine") {
+      assert_raises_with_matching_message(StandardError, 
+                                          /Error in the default values/) {
+        b = ChoicesBuilder.new
+        b.add_source(CommandLineChoices, :usage, "blah")
+        b.add_choice(:command_option) { | command_line |
+          command_line.uses_option('--command-option VALUE')
+        }
+        b.add_choice(:broken, :default => '0.3', :type => :integer)
+        b.build
+      }
+    }
+  end
+
+  def test_conversions_are_done_for_all_sources
+    with_environment_vars("amazon_rc" => "1") {
+      b = ChoicesBuilder.new
+      b.add_source(EnvironmentChoices, :with_prefix, 'amazon')
+      b.add_choice(:_rc, :type => :integer, :default => '3')
+      assert_equal(1, b.build[:_rc])
+    }
+  end
+
+  def test_unmentioned_choices_are_nil
+    with_environment_vars("amazon_rc" => "1") {
+      b = ChoicesBuilder.new
+      b.add_source(EnvironmentChoices, :with_prefix, 'amazon_')
+      b.add_choice(:rc, :default => 5, :type => :integer)
+      choices = b.build
+      assert_equal(nil, choices[:unmentioned])
+      assert_equal(1, choices[:rc])   # for fun
+    }
+  end
+
+  def test_given_optional_args_override_lower_precedence_sources
+    with_command_args("override") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineChoices, :usage, "blah")
+      b.add_choice(:name, :default => 'default') { | command_line |
+        command_line.uses_optional_arg
+      }
+      choices = b.build
+      assert_equal('override', choices[:name])
+    }
+  end
+
+  def test_non_empty_arglists_override_lower_precedence_sources
+    with_command_args("1") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineChoices, :usage, 'blah')
+      b.add_choice(:name, :default => ['default', '1']) { |command_line| 
+        command_line.uses_arglist
+      }
+      assert_equal(['1'], b.build[:name])
+    }
+  end
+  
 end
-        
+
+
+class TestInteractionOfArglistsWithOtherSources < Test::Unit::TestCase
+  include UserChoices 
+  
+  def test_missing_optional_args_do_not_override_lower_precedence_sources
+    with_command_args("") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineChoices, :usage, 'blah')
+      b.add_choice(:name, :default => 'default') { |command_line| 
+        command_line.uses_optional_arg
+      }
+      assert_equal('default', b.build[:name])
+    }
+  end
+
+  def test_missing_optional_args_are_ok_if_no_lower_precedence_sources
+    with_command_args("") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineChoices, :usage, 'blah')
+      b.add_choice(:name) { |command_line| 
+        command_line.uses_optional_arg
+      }
+      assert_false(b.build.has_key?(:name))
+    }
+  end
+
+  def test_present_optional_args_do_override_lower_precedence_sources
+    with_command_args("1") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineChoices, :usage, 'blah')
+      b.add_choice(:name, :default => 'default') { |command_line| 
+        command_line.uses_optional_arg
+      }
+      assert_equal('1', b.build[:name])
+    }
+  end
+  
+
+
+  def test_empty_arglists_do_not_override_lower_precedence_sources
+    # nothing / stuff
+    xml = "<config><names>1</names><names>2</names></config>"
+    with_local_config_file("test-config", xml) {
+      with_command_args("") {
+        b = ChoicesBuilder.new 
+        b.add_source(CommandLineChoices, :usage, 'blah')
+        b.add_source(XmlConfigFileChoices, :from_file, 'test-config')
+        b.add_choice(:names) { |command_line| 
+          command_line.uses_arglist
+        }
+        assert_equal(['1', '2'], b.build[:names])
+      }
+    }
+  end
+  
+  def test_default_empty_arglist_is_empty_array
+    # nothing / nothing
+    with_command_args("") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineChoices, :usage, 'blah')
+      b.add_choice(:names) { |command_line| 
+        command_line.uses_arglist
+      }
+      assert_equal([], b.build[:names])
+    }
+  end
+  
+  def test_default_empty_arglist_can_be_set_explicitly
+    # nothing / nothing
+    with_command_args("") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineChoices, :usage, 'blah')
+      b.add_choice(:names, :default => ['fred']) { |command_line| 
+        command_line.uses_arglist
+      }
+      assert_equal(['fred'], b.build[:names])
+    }
+  end
+  
+  def test_present_arglist_does_override_lower_precedence_sources
+    # stuff / stuff
+    with_command_args("1") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineChoices, :usage, 'blah')
+      b.add_choice(:names, :default => ['default']) { |command_line| 
+        command_line.uses_arglist
+      }
+      assert_equal(['1'], b.build[:names])
+    }
+  end
+  
+  def test_setup_for_overridable_empty_argument_list_is_compatible_with_length
+    # This is an implementation-dependent test. Command-line arguments can 
+    # be empty, yet overridden by less-important sources. This is done by 
+    # initializing the default value to the empty list. But that must not 
+    # trigger the length check.
+    with_command_args("1 2") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineChoices, :usage, 'blah')
+      b.add_choice(:names, :length => 2) { |command_line| 
+        command_line.uses_arglist
+      }
+      assert_equal(['1', '2'], b.build[:names])
+    }
+  end
+
+
+  def test_choices_from_earlier_defaults_prevent_failing_arglist_arity_check
+    with_command_args("") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineChoices, :usage, 'blah')
+      b.add_choice(:names, :length => 1..2, :default => ['1']) { |command_line| 
+        command_line.uses_arglist
+      }
+      assert_equal(['1'], b.build[:names])
+    }
+
+  end
+end
+
 class TestCommandLineConstruction < Test::Unit::TestCase
   include UserChoices
 
   def test_command_line_choices_requires_blocks_for_initialization
     with_command_args("--switch -c 5 arg") {
       b = ChoicesBuilder.new
-      b.add_source(CommandLineChoices, :fill)
+      b.add_source(CommandLineChoices, :usage, "hi")
 
       b.add_choice(:unused) { | command_line |
         command_line.uses_switch("-u", "--unused")
@@ -162,5 +450,50 @@ class TestCommandLineConstruction < Test::Unit::TestCase
       assert(l4 < l5)
     }
   end
+  
+  class TestSpecialCases  < Test::Unit::TestCase
+    include UserChoices
+    
+    def test_environment_choices_can_be_given_prefix_and_mapping
+      with_environment_vars("prefix_e" =>  "e", "HOME" => '/Users/marick') {
+        b = ChoicesBuilder.new
+        b.add_source(EnvironmentChoices, :with_prefix, "prefix_", :mapping, {:home => "HOME" })
+        b.add_choice(:e)
+        b.add_choice(:home)
+        choices = b.build
+        assert_equal("e", choices[:e])
+        assert_equal("/Users/marick", choices[:home])
+      }
+      
+    end
+  end
+
+
+  class TestUtilities  < Test::Unit::TestCase
+    include UserChoices
+    
+    def setup
+      @builder = ChoicesBuilder.new
+    end
+    
+    def test_message_send_splitter
+      assert_equal([[:usage, 'arg']], 
+                   @builder.message_sends([:usage, 'arg']))
+      assert_equal([[:usage, 'arg1', 2]], 
+                   @builder.message_sends([:usage, 'arg1', 2]))
+      assert_equal([[:msg, 'arg1', 2], [:next, 1]], 
+                   @builder.message_sends([:msg, 'arg1', 2, :next, 1]))
+      # a common case
+      assert_equal([[:with_prefix, 'p_'], [:mapping, {:home => 'home'}]],
+                   @builder.message_sends([:with_prefix, 'p_', :mapping, {:home => 'home'}]))
+    end
+    
+    def test_symbol_indices
+      assert_equal([0, 3], @builder.symbol_indices([:foo, 1, 2, :bar, "quux"]))
+    end
+  end
+
+
+  
 end
 

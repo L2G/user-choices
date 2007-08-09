@@ -1,3 +1,4 @@
+require "user-choices/conversions"
 require 'user-choices/choices'
 require 'user-choices/command-line-choices'
 require 'user-choices/command'

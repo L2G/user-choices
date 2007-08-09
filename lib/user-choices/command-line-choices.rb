@@ -7,49 +7,54 @@ module UserChoices # :nodoc
   # Treat the command line (including the arguments) as a source
   # of choices.
   class CommandLineChoices < ExternallyFilledHash
-    
-    def self.fill(&block)    # :nodoc:
-      instance = new
-      instance.for_these_options(&block)
-      instance
-    end
-
-    # The _usage_lines_ will be used to produce the output from
-    # --help (or on error). The __block__ is given the CommandLineChoices
-    # object to initialize.
-    def self.usage(*usage_lines, &block) 
-      fill do | command_line |
-        command_line.help_banner(*usage_lines)
-        block.call(command_line)
-      end
-        
-    end
-
-    def source     # :nodoc: 
-      "the command line"
-    end
-
-    def for_these_options    # :nodoc: 
+    def initialize(*args)
+      super(*args)
       @parser = OptionParser.new
       @arglist_handler = lambda { | args |
         user_claims(args.length == 0) do
           "No arguments are allowed."
         end
       }
-      yield(self)
-      parse
     end
-
-    def parse    # :nodoc: 
-      begin
+      
+    
+    # The _usage_lines_ will be used to produce the output from
+    # --help (or on error).
+    def usage(*usage_lines) 
+      help_banner(*usage_lines)
+      self
+    end
+    
+    def fill
+      exit_upon_error("Error in the command line: ") do
         remainder = @parser.parse(ARGV)
         @arglist_handler.call(remainder)
-      rescue SystemExit
-        raise
-      rescue Exception => ex
-        $stderr.puts "Error in the command line: " + ex.message
-        help
       end
+    end
+    
+    
+    
+    def apply(choice_conversions)
+      friendlier_length_error = lambda {| choice, conversion |
+        if conversion.description.include?("length")
+          arglist_arity_error(self[choice].length, conversion.required_length)
+        else
+          bad_look(choice, conversion)
+        end
+      }
+      
+      error_callbacks = {}
+      if @arglist_choice_name
+        error_callbacks[@arglist_choice_name] = friendlier_length_error
+      end
+
+      exit_upon_error do
+        super(choice_conversions, error_callbacks)
+      end
+    end
+
+    def source     # :nodoc: 
+      "the command line"
     end
 
     def help    # :nodoc: 
@@ -84,9 +89,9 @@ module UserChoices # :nodoc
     # There's currently no way to escape a comma and no cleverness about
     # quotes. 
     def uses_option(choice, *args)
-      external_name = extract_external_name(args)
+      external_names[choice] = '--' + extract_switch_raw_name(args)
       @parser.on(*args) do | value |
-        record_name_key_and_value(external_name, choice, value)
+        self[choice] = value
       end
     end
 
@@ -101,39 +106,43 @@ module UserChoices # :nodoc
     # * If it is given as <tt>--no-switch</tt>, the _choice_ has the
     #   value <tt>"false"</tt>.
     def uses_switch(choice, *args)
-      external_name = extract_external_name(args)
+      external_name = extract_switch_raw_name(args)
+      external_names[choice] = '--' + external_name
       args = change_name_to_switch(external_name, args)
       @parser.on(*args) do | value |
-        record_name_key_and_value(external_name, choice, value.to_s)
+        self[choice] = value.to_s
       end
     end
 
 
     # Bundle up all non-option and non-switch arguments into an
-    # array of strings indexed by _choice_. _arglist_arity_ describes
-    # how many arguments there can be. It may be a range or an exact count. 
-    def uses_arglist(choice, arglist_arity = (0..100000000))
+    # array of strings indexed by _choice_. 
+    def uses_arglist(choice)
+      external_names[choice] = "the argument list"
       @arglist_handler = lambda { | arglist |
-        self.class.claim_arglist_arity_OK(arglist.length, arglist_arity)
-        self[choice] = arglist
+        self[choice] = arglist unless arglist.empty?
       }
+      @accepts_argument_list = true
+      @arglist_choice_name = choice
     end
 
-    # By default, the single argument required argument is turned into
-    # a string indexed by _choice_. If the _arglist_arity_ is
-    # <tt>(0..1)</tt>, the argument is optional. If not given, its
-    # _choice_ will have no value in the hash.
-    #
-    # An _arglist_arity_ other than <tt>1</tt> or <tt>(0..1)</tt> is meaningless. 
-    #
-    # See uses_optional_arg for a more convenient way to describe an
-    # optional argument.
-    def uses_arg(choice, arglist_arity = 1)
-      # if they call arg with an arity other than 1 or 0..1, they
-      # deserve whatever (undefined thing) they get.
+    # The single argument required argument is turned into
+    # a string indexed by _choice_. Any other case is an error.
+    def uses_arg(choice)
+      arg_helper(choice, 1)
+      @single_required_arg = true
+      @arglist_choice_name = choice
+    end
+
+    def arg_helper(choice, arity)
+      external_names[choice] = "the argument list"
       @arglist_handler = lambda { | arglist |
-        self.class.claim_arglist_arity_OK(arglist.length, arglist_arity)
-        self[choice] = arglist[0] if arglist.length == 1
+        case arglist.length
+        when 0: # This is not considered an error because another source
+                # might fill in the value.
+        when 1: self[choice] = arglist[0]
+        else user_is_bewildered(arglist_arity_error(arglist.length, arity))
+        end
       }
     end
 
@@ -141,25 +150,54 @@ module UserChoices # :nodoc
     # _choice_. If no argument is present, _choice_ has no value.
     # Any other case is an error. 
     def uses_optional_arg(choice)
-      uses_arg(choice, 0..1)
+      arg_helper(choice, 0..1)
     end
+    
+    def accepts_argument_list?
+      @accepts_argument_list
+    end
+    
+    def single_required_arg?
+      @single_required_arg
+    end
+    
+    def arglist_choice_name
+      @arglist_choice_name
+    end
+
+    def arglist_arity_error(length, arglist_arity)
+      plural = length==1 ? '' : 's'
+      expected = case arglist_arity
+        when Integer
+          arglist_arity.to_s
+        when Range
+          if arglist_arity.end == arglist_arity.begin.succ
+            "#{arglist_arity.begin} or #{arglist_arity.end}"
+          else
+            arglist_arity.in_words
+          end
+        else
+          arglist_arity.inspect
+        end
+      "#{length} argument#{plural} given, #{expected} expected."
+    end
+
+    def exit_upon_error(prefix = '')
+      begin
+        yield
+      rescue SystemExit
+        raise
+      rescue Exception => ex
+        $stderr.puts(prefix + ex.message)
+        help
+      end
+    end
+
+
 
     private
-
-    def self.claim_arglist_arity_OK(length, arglist_arity)
-      user_claims(arglist_arity === length) {
-        plural = length==1 ? '' : 's'
-        case arglist_arity
-        when Integer
-          expected = arglist_arity.to_s
-        when Range
-          expected = arglist_arity.in_words
-        end
-        "#{length} argument#{plural} given, #{expected} expected."
-      }
-    end
-
-    def extract_external_name(option_descriptions)
+    
+    def extract_switch_raw_name(option_descriptions)
       option_descriptions.each do | desc |
         break $1 if /^--([\w-]+)/ =~ desc
       end
@@ -170,10 +208,6 @@ module UserChoices # :nodoc
         /^--/ =~ desc ? "--[no-]#{name}" : desc
       end
     end        
-
-    def record_external_name(choice, external_name)
-      super(choice, "--" + external_name)
-    end
   end
 
 
@@ -198,7 +232,7 @@ module UserChoices # :nodoc
   # a dash marks the end of all options. In that case, the first command line
   # above would parse into two arguments and no options.
   class PosixCommandLineChoices < CommandLineChoices
-    def parse
+    def fill
       begin
         already_set = ENV.include?('POSIXLY_CORRECT')
         ENV['POSIXLY_CORRECT'] = 'true' unless already_set

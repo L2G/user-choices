@@ -22,91 +22,75 @@ module UserChoices   # :nodoc
 
 
   class ExternallyFilledHash < Hash # :nodoc:
-    def self.fill(*args); subclass_responsibility; end
-    def source; subclass_responsibility; end
+    
+    attr_reader :external_names
 
-    def check_values(check_descriptions)
-      check_descriptions.each { | key, check_description |
-        next unless has_key?(key)
-        check_one(key, check_description)
-      }
-    end
-
-    def update_values(updates)
-      updates.each { | key, update |
-        next unless has_key?(key)
-        if update == :integer
-          self[key] = self[key].to_i
-        elsif update == :boolean
-          self[key] = eval(self[key].downcase)
-        elsif update == [:string]
-          return if self[key].is_a? Array
-          self[key] = self[key].split(',')
-        end
-      }
-    end
-
-    private
-
-    def initialize()
+    def initialize
       super()
-      @keys_to_external_names = {}
+      @external_names = {}
     end
-
-    def error_prefix
-      "Error in #{source}: "
-    end
-
-    def record_name_key_and_value(external_name, key, value)
-      self[key] = value
-      record_external_name(key, external_name)
-    end
-
-    def record_external_name(key, external_name)
-      @keys_to_external_names[key] = external_name
-    end
-
-    def bad_look(key, like_what)
-      error_prefix + "'#{external_name(key)}' requires #{like_what} value, and '#{self[key]}' doesn't look like one."
-    end
-
-    def check_one(key, check_description)
-      if check_description == :integer
-        user_claims(/^\d+$/ =~ (self[key])) { 
-          bad_look(key, 'an integer')
+    
+    def fill; subclass_responsibility; end
+    def source; subclass_responsibility; end
+    
+    
+    def apply(choice_conversions, error_callbacks = {})
+      each_conversion(choice_conversions) do | choice, conversion |
+        next unless self.has_key?(choice)
+        
+        user_claims(conversion.suitable?(self[choice])) {
+          msg = if error_callbacks.has_key?(choice)
+                  error_callbacks[choice].call(choice, conversion)
+                else
+                  bad_look(choice, conversion)
+                end
+          error_prefix + msg
         }
-      elsif check_description == :boolean
-        user_claims(['true', 'false'].include?(self[key].downcase)) {
-          bad_look(key, 'a boolean')
-        }
-      elsif check_description == [:string]
-        # Anything is OK
-      elsif a_set_of_possible_values(check_description)
-        user_claims(check_description.include?(self[key])) {
-          error_prefix +
-            "'#{self[key]}' is not a valid value for '#{external_name(key)}'."
-        }
+        
+        self[choice] = conversion.convert(self[choice])
+      end
+    end
+    
+    
+    def each_conversion(choice_conversion_hash)
+      choice_conversion_hash.each do | choice, conversion_list | 
+        conversion_list.each do | conversion |
+          yield(choice, conversion)
+        end
       end
     end
 
 
+    protected
 
-    def external_name(key)
-      @keys_to_external_names[key]
+    def error_prefix
+      "Error in #{source}: "
+    end
+    
+    def pretty_value(value)
+      case value
+      when Array: value.inspect
+      else "'#{value}'"
+      end
     end
 
-    def a_set_of_possible_values(thing)
-      thing.respond_to?(:include?)
+    def bad_look(key, conversion)
+      like_what = conversion.description
+      "#{@external_names[key]}'s value must be #{like_what}, and #{pretty_value(self[key])} doesn't look right."
     end
 
   end
 
   class DefaultChoices < ExternallyFilledHash   # :nodoc:
-    def self.fill(hash)
-      instance = new
-      instance.merge!(hash)
-      instance.count_symbols_as_external_names(hash.keys)
-      instance
+    
+    def use_hash(defaults)
+      @defaults = defaults
+      count_symbols_as_external_names(@defaults.keys)
+      self
+    end
+    
+    def fill
+      merge!(@defaults)
     end
 
     def source
@@ -116,81 +100,55 @@ module UserChoices   # :nodoc
     def count_symbols_as_external_names(symbols)
       symbols.each { | symbol |
         # Use inspect so that symbol prints with leading colon
-        @keys_to_external_names[symbol] = symbol.inspect
+        @external_names[symbol] = symbol.inspect
       }
     end
   end
 
-  class ComposedChoices < ExternallyFilledHash  # :nodoc:
-
-    def self.fill(*args, &checks_and_conversions)
-      new(checks_and_conversions, *args)
-    end
-
-    def initialize(checks_and_conversions, *subordinates)
-      super()
-      @subordinates = subordinates
-      checks_and_conversions.call(self) if checks_and_conversions
-      @subordinates.reverse.each do | subordinate |
-        self.merge!(subordinate)
-      end
-    end
-
-    def source; 'this should never be seen'; end
-
-    def check_values(check_descriptions)
-      @subordinates.each do | subordinate | 
-        subordinate.check_values(check_descriptions)
-      end
-    end
-
-    def update_values(updates)
-      @subordinates.each do | subordinate |
-        subordinate.update_values(updates)
-      end
-    end
-  end
 
   
   # Describe the environment as a source of choices. 
   class EnvironmentChoices < ExternallyFilledHash
-
-    def self.fill(symbols_and_vars_of_interest)    # :nodoc:
-      new(symbols_and_vars_of_interest)
+    def fill    # :nodoc:
+      @external_names.each { | key, env_var |
+        self[key] = ENV[env_var] if ENV.has_key?(env_var)
+      }
     end
 
     # Environment variables beginning with _prefix_ (a string)
     # are considered to be user choices relevant to this script.
     # Everything after the prefix names a choice (that is, a symbol).
-    # Dashes are converted to underscores. That is, +prefix-my-choice+
-    # refers to the choice <tt>:my_choice</tt>.
+    # Dashes are converted to underscores. Examples:
+    # * Environment variable <tt>prefix-my-choice</tt> with prefix <tt>"prefix-" is choice <tt>:my_choice</tt>.
+    # * Environment variable <tt>PREFIX_FOO</tt> with prefix <tt>"PREFIX_" is choice <tt>:FOO</tt>
     #
     # If you want an array of strings, separate the values by commas:
     # ENV_VAR=a,b,c
     # There's currently no way to escape a comma and no cleverness about
-    # quotes. 
-    #
-    # _extras_ is a mapping from a choice to an environment variable
-    # name. By saying <tt>:home => 'HOME'</tt>, you can capture the
-    # value of <tt>$HOME</tt> even though it doesn't begin with a 
-    # prefix.
-    def self.with_prefix(prefix, extras = {})
+    # quotes or whitespace.
+    
+    def with_prefix(prefix)
       matches = ENV.collect do | env_var, ignored_value |
         if /^#{prefix}(.+)/ =~ env_var
           [$1.to_inputable_sym, env_var]
         end
       end
-      fill(Hash[*matches.compact.flatten].merge(extras))
+      @external_names.merge!(Hash[*matches.compact.flatten])
+      self
     end
-
-
-    def initialize(symbols_and_vars_of_interest)     # :nodoc:
-      super()
-      @keys_to_external_names = symbols_and_vars_of_interest
-      symbols_and_vars_of_interest.each { | key, env_var |
-        self[key] = ENV[env_var] if ENV.has_key?(env_var)
-      }
+  
+    # Some environment variables have names you don't like. For example, $HOME
+    # might be annoying because of the uppercase. Also, if most of your program's 
+    # environment variables have some prefix (see with_prefix) but you also want to use
+    # $HOME, you need a way to do that. You can satisfy both desires with 
+    #
+    #      EnvironmentChoices.new.with_prefix("my_").mapping(:home => "HOME")
+  
+    def mapping(map)
+      @external_names.merge!(map)
+      self
     end
+      
 
     def source    # :nodoc:
       "the environment"
@@ -199,26 +157,24 @@ module UserChoices   # :nodoc
   
   class FileChoices < ExternallyFilledHash # :nodoc: 
 
-    # Just a place to hang documentation, really.
-    def self.from_file(filename); subclass_responsibility; end
+    def from_file(filename)
+      @path = File.join(S4tUtils.find_home, filename)
+      @contents_as_hash = self.read_into_hash
+      @contents_as_hash.each do | external_name, value |
+        sym = external_name.to_inputable_sym
+        @external_names[sym] = external_name
+      end
+      self
+    end
 
-    def self.fill(filename)    # :nodoc:
-      prog1(new) do | retval |
-        retval.record_path(filename)
-        retval.make_choices(retval.read_into_hash)
+    def fill    # :nodoc:
+      @external_names.each do | symbol, external_name |
+        self[symbol] = @contents_as_hash[external_name]
       end
     end
 
     def source    # :nodoc:
       "configuration file #{@path}"
-    end
-
-    def make_choices(hash) # :nodoc: 
-      hash.each do | external_name, value |
-        sym = external_name.to_inputable_sym
-        @keys_to_external_names[sym] = external_name
-        self[sym] = value
-      end
     end
 
     def read_into_hash    # :nodoc:
@@ -232,10 +188,6 @@ module UserChoices   # :nodoc
         end
         raise ex
       end
-    end
-
-    def record_path(filename)
-      @path = File.join(S4tUtils.find_home, filename)
     end
 
     protected 
@@ -260,10 +212,6 @@ module UserChoices   # :nodoc
     # same way Rubygems finds it. (First look in environment variables
     # <tt>$HOME</tt>, <tt>$USERPROFILE</tt>, <tt>$HOMEDRIVE:$HOMEPATH</tt>,
     # file expansion of <tt>"~"</tt> and finally the root.)
-    def self.from_file(filename)
-      fill(filename)
-    end
-
     def format_specific_reading
       XmlSimple.xml_in(@path, 'ForceArray' => false)
     end
@@ -292,10 +240,6 @@ module UserChoices   # :nodoc
     # Treat _filename_ as the configuration file. _filename_ is expected
     # to be in the home directory. The home directory is found in the
     # same way Rubygems finds it. 
-    def self.from_file(filename)
-      fill(filename)
-    end
-
     def format_specific_reading
       result = YAML.load_file(@path)
       ensure_hash_values_are_strings(result)

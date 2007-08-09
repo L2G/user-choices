@@ -7,42 +7,50 @@ include S4tUtils
 
               ### Handling of options with arguments ###
 
-class OPTIONS_CommandLineTests < Test::Unit::TestCase
+class CommandLineTestCase < Test::Unit::TestCase
   include UserChoices
+  
+  def setup
+    @cmd_line = CommandLineChoices.new
+  end
 
+  def default_test
+  end
+end
+
+class OPTIONS_CommandLineTests < CommandLineTestCase
   def test_options_can_be_given_in_the_command_line
     with_command_args('--given-option value') {
-      hash = CommandLineChoices.fill do | c |
-        c.uses_option(:given_option, "--given-option VALUE")
-      end
+      @cmd_line.uses_option(:given_option, "--given-option VALUE")
+      @cmd_line.fill
 
-      assert_true(hash.has_key?(:given_option))
-      assert_equal("value", hash[:given_option])
+      assert_true(@cmd_line.has_key?(:given_option))
+      assert_equal("value", @cmd_line[:given_option])
 
-      assert_false(hash.has_key?(:unspecified_option))
-      assert_equal(nil, hash[:unspecified_option])
+      assert_false(@cmd_line.has_key?(:unspecified_option))
+      assert_equal(nil, @cmd_line[:unspecified_option])
     }
   end
 
   def test_the_specification_can_describe_options_that_are_not_given
     # They're really /optional/.
     with_command_args('') { 
-      hash = CommandLineChoices.fill do | c |
-        c.uses_option(:unused_option, "--unused-option VALUE")
-      end
-      assert_false(hash.has_key?(:unused_option))
-      assert_equal(nil, hash[:unused_option])
+      @cmd_line.uses_option(:unused_option, "--unused-option VALUE")
+      @cmd_line.fill
+
+      assert_false(@cmd_line.has_key?(:unused_option))
+      assert_equal(nil, @cmd_line[:unused_option])
     }
   end
 
   def test_options_can_have_one_letter_abbreviations
     with_command_args('-s s-value --option=option-value') {
-      hash = CommandLineChoices.fill do | c |
-        c.uses_option(:option, "-o", "--option=VALUE")
-        c.uses_option(:something, "-s", "--something=VALUE")
-      end
-      assert_equal("s-value", hash[:something])
-      assert_equal("option-value", hash[:option])
+      @cmd_line.uses_option(:option, "-o", "--option=VALUE")
+      @cmd_line.uses_option(:something, "-s", "--something=VALUE")
+      @cmd_line.fill
+      
+      assert_equal("s-value", @cmd_line[:something])
+      assert_equal("option-value", @cmd_line[:option])
     }
   end
 
@@ -50,58 +58,57 @@ class OPTIONS_CommandLineTests < Test::Unit::TestCase
 
   def test_command_line_list_of_possible_values_checking
     with_command_args("-n true") do
-      assert_raises_with_matching_message(StandardError,
-           %r{Error in the command line: 'true' is not a valid value for '--north-west'}) {
-        choices = CommandLineChoices.fill do | c |
-          c.uses_option(:north_west, "-n", "--north-west=VALUE")
+      @cmd_line.uses_option(:north_west, "-n", "--north-west=VALUE")
+      @cmd_line.fill
+      output = capturing_stderr do
+        assert_wants_to_exit do
+          @cmd_line.apply({:north_west => [Conversion.for(['low', 'high'])]})
         end
-        choices.check_values(:north_west => ['low', 'high'])
-      }
+      end
+      assert_match(%r{Error in the command line: --north-west's value}, output)
     end
   end
 
   def test_command_line_integer_value_checking
     with_command_args("--day-count-max=2d3") do
-      assert_raises_with_matching_message(StandardError,
-            /Error in the command line: '--day-count-max' requires an integer value, and '2d3' doesn't look like one/) {
-        choices = CommandLineChoices.fill do | c |
-          c.uses_option(:day_count_max, "--day-count-max=VALUE")
+      @cmd_line.uses_option(:day_count_max, "--day-count-max=VALUE")
+      @cmd_line.fill
+      output = capturing_stderr do
+        assert_wants_to_exit do
+          @cmd_line.apply({:day_count_max => [Conversion.for(:integer)]})
         end
-        choices.check_values(:day_count_max => :integer)
-      }
+      end
+      assert_match(/Error in the command line: --day-count-max's value/, output)
     end
   end
 
 
-  def test_integer_value_updating
+  def test_integer_conversion
     with_command_args("--day-count-max 23") do
-      choices = CommandLineChoices.fill do | c |
-        c.uses_option(:day_count_max, "--day-count-max=VALUE")
-      end
-      choices.update_values(:day_count_max => :integer)
-      assert_equal(23, choices[:day_count_max])
+      @cmd_line.uses_option(:day_count_max, "--day-count-max=VALUE")
+      @cmd_line.fill
+      @cmd_line.apply({:day_count_max => [Conversion.for(:integer)]})
+      assert_equal(23, @cmd_line[:day_count_max])
     end
   end
 
-  def test_array_value_updating_with_proper_multivalue_declaration
+  def test_array_value_conversion_with_proper_multivalue_declaration
     with_command_args("--hosts localhost,foo.com") do
-      choices = CommandLineChoices.fill do | c |
-        c.uses_option(:hosts, "--hosts HOST,HOST")
-      end
-      choices.update_values(:hosts => [:string])
+      @cmd_line.uses_option(:hosts, "--hosts HOST,HOST")
+      @cmd_line.fill
+      @cmd_line.apply({:hosts => [Conversion.for([:string])]})
       assert_equal(['localhost', 'foo.com'],
-                   choices[:hosts])
+                   @cmd_line[:hosts])
     end
   end
 
-  def test_array_value_updating_without_proper_multivalue_declaration
+  def test_array_value_conversion_without_proper_multivalue_declaration_still_works
     with_command_args("--hosts localhost,foo.com") do
-      choices = CommandLineChoices.fill do | c |
-        c.uses_option(:hosts, "--hosts HOSTS...")
-      end
-      choices.update_values(:hosts => [:string])
+      @cmd_line.uses_option(:hosts, "--hosts HOSTS...")
+      @cmd_line.fill
+      @cmd_line.apply({:hosts => [Conversion.for([:string])]})
       assert_equal(['localhost', 'foo.com'],
-                   choices[:hosts])
+                   @cmd_line[:hosts])
     end
   end
 
@@ -113,33 +120,33 @@ end
 
 # Note that switches are string-valued for consistency with
 # other sources (like environment variables).
-class SWITCHES_CommandLineTest < Test::Unit::TestCase
-  include UserChoices
+class SWITCHES_CommandLineTest < CommandLineTestCase
 
   def test_boolean_switches_are_accepted
     with_command_args("--c") do
-      choices = CommandLineChoices.fill do | c |
-        c.uses_switch(:csv, "-c", "--csv")
-      end
-      assert_equal("true", choices[:csv])
+      @cmd_line.uses_switch(:csv, "-c", "--csv")
+      @cmd_line.fill
+      assert_equal("true", @cmd_line[:csv])
+      
+      # ... but they can be converted into booleans
+      @cmd_line.apply({:csv => [Conversion.for(:boolean)]})
+      assert_equal(true, @cmd_line[:csv])
     end
   end
 
   def test_unmentioned_switches_have_no_value
     with_command_args("") do
-      choices = CommandLineChoices.fill do | c |
-        c.uses_switch(:csv, "-c", "--csv")
-      end
-      assert_false(choices.has_key?(:csv))
+      @cmd_line.uses_switch(:csv, "-c", "--csv")
+      @cmd_line.fill
+      assert_false(@cmd_line.has_key?(:csv))
     end
   end
 
   def test_switches_can_be_explicitly_false
     with_command_args("--no-csv") do
-      choices = CommandLineChoices.fill do | c |
-        c.uses_switch(:csv, "-c", "--csv")
-      end
-      assert_equal("false", choices[:csv])
+      @cmd_line.uses_switch(:csv, "-c", "--csv")
+      @cmd_line.fill
+      assert_equal("false", @cmd_line[:csv])
     end
   end
 end
@@ -148,101 +155,216 @@ end
                         ### Argument Lists ###
 
 # Arguments lists are treated as another option.
-class ARGLISTS_CommandLineTest < Test::Unit::TestCase
-  include UserChoices
+class ARGLISTS_CommandLineTest < CommandLineTestCase
 
+  def test_by_default_arglists_are_not_allowed
+    # Note that the error check is done at fill time, not apply time.
+    with_command_args("one") {
+      output = capturing_stderr do
+        assert_wants_to_exit do
+          @cmd_line.fill
+        end
+      end
+      
+      assert_match(/Error in the command line: No arguments are allowed./, output)
+    }
+  end
+  
   def test_arglist_after_options_can_turned_into_an_option
     with_command_args("--unused unused arg1 arg2") {
-      hash = CommandLineChoices.fill do | c |
-        c.uses_option(:unused, "--unused VALUE")  # just for grins
-        c.uses_arglist(:args)
-      end
-      assert_true(hash.has_key?(:args))
-      assert_equal(["arg1", "arg2"], hash[:args])
+      @cmd_line.uses_option(:unused, "--unused VALUE")  # just for grins
+      @cmd_line.uses_arglist(:args)
+      @cmd_line.fill
+      assert_true(@cmd_line.has_key?(:args))
+      assert_equal(["arg1", "arg2"], @cmd_line[:args])
     }
   end
 
-  def test_arglist_can_describe_allowable_number_of_arguments
+  def test_arglist_can_check_allowable_number_of_arguments
     with_command_args("--unused unused arg1 arg2") {
-      hash = CommandLineChoices.fill do | c |
-        c.uses_option(:unused, "--unused VALUE")  # just for grins
-        c.uses_arglist(:args, 2)
-      end
-      assert_true(hash.has_key?(:args))
-      assert_equal(["arg1", "arg2"], hash[:args])
+      @cmd_line.uses_option(:unused, "--unused VALUE")  # just for grins
+      @cmd_line.uses_arglist(:args)
+      @cmd_line.fill
+      @cmd_line.apply({:args => [Conversion.for({:length => 2})]})
+      assert_true(@cmd_line.has_key?(:args))
+      assert_equal(["arg1", "arg2"], @cmd_line[:args])
     }
   end
 
   def test_error_if_exact_arglist_number_is_wrong
     with_command_args("arg1 arg2") {
+      @cmd_line.uses_arglist(:args)
+      @cmd_line.fill
       output = capturing_stderr do
         assert_wants_to_exit do
-          hash = CommandLineChoices.fill do | c |
-            c.uses_arglist(:args, 3)
-          end
+          @cmd_line.apply({:args => [Conversion.for({:length => 3})]})
         end
       end
-
       assert_match(/Error in the command line:.*2 arguments given, 3 expected./, output)
     }
   end
 
   def test_arglist_arity_can_be_a_range
     with_command_args("arg1 arg2") {
-      hash = CommandLineChoices.fill do | c |
-        c.uses_arglist(:args, 1..3)
-      end
-      assert_true(hash.has_key?(:args))
-      assert_equal(["arg1", "arg2"], hash[:args])
+      @cmd_line.uses_arglist(:args)
+      @cmd_line.fill
+      @cmd_line.apply({:args => [Conversion.for({:length => 1..2})]})
+      assert_true(@cmd_line.has_key?(:args))
+      assert_equal(["arg1", "arg2"], @cmd_line[:args])
     }
   end
 
 
   def test_error_if_arglist_does_not_match_range
     with_command_args("arg1 arg2") {
+      @cmd_line.uses_arglist(:args)
+      @cmd_line.fill
       output = capturing_stderr do
-        assert_wants_to_exit do
-          hash = CommandLineChoices.fill do | c |
-            c.uses_arglist(:args, 3..6)
-          end
+        assert_wants_to_exit do    
+          @cmd_line.apply({:args => [Conversion.for({:length => 3..6})]})
         end
       end
-
       assert_match(/Error in the command line:.*2 arguments given, 3 to 6 expected./, output)
     }
   end
+  
+  def test_command_lines_know_when_they_have_been_told_what_to_do_about_an_arglist
+    assert_false(@cmd_line.accepts_argument_list?)
+    @cmd_line.uses_arglist(:args)
+    assert_true(@cmd_line.accepts_argument_list?)
+    assert_equal(:args, @cmd_line.arglist_choice_name)
+  end
+  
+  def test_arglist_external_name_is_friendly
+    @cmd_line.uses_arglist(:fred)
+    assert_equal("the argument list", @cmd_line.external_names[:fred])
+  end
+  
+end
+
+class ARG_CommandLineTest < CommandLineTestCase
+  include UserChoices
+
+
+  def test_a_singleton_arg_will_not_be_in_a_list
+    with_command_args("arg-only") {
+      @cmd_line.uses_option(:unused, "--unused VALUE")  # just for grins
+      @cmd_line.uses_arg(:arg)
+      @cmd_line.fill
+      assert_true(@cmd_line.has_key?(:arg))
+      assert_equal("arg-only", @cmd_line[:arg])
+    }
+  end
+
+  def test_missing_singleton_args_will_NOT_generate_length_errors
+    # Because the missing argument might be filled in by other chained sources.
+    with_command_args("") {
+      @cmd_line.uses_arg(:arg)
+      @cmd_line.fill
+      @cmd_line.apply({:arg => [Conversion.for(:length => 1)]})
+      # no error
+    }
+  end
+  
+  def test_command_lines_know_when_have_a_required_singleton
+    # So someone else can check that some value has been given somewhere.
+    assert_false(@cmd_line.single_required_arg?)
+    @cmd_line.uses_arg(:arg)
+    assert_true(@cmd_line.single_required_arg?)
+    assert_equal(:arg, @cmd_line.arglist_choice_name)
+  end
+  
+  
+  
+  def test_extra_singleton_args_generate_errors
+    # Note that it's caught in the 'fill' step.
+    with_command_args("1 2") {
+      @cmd_line.uses_arg(:arg)
+      output = capturing_stderr do
+        assert_wants_to_exit do    
+          @cmd_line.fill
+        end
+      end
+      assert_match(/Error in the command line: .*2 arguments given, 1 expected/, output)
+    }
+  end
+
+  def test_singleton_arguments_can_be_optional
+    with_command_args("") {
+      @cmd_line.uses_optional_arg(:arg)
+      @cmd_line.fill
+      assert_false(@cmd_line.has_key?(:arg))
+      assert_equal(nil, @cmd_line[:arg])
+    }
+  end
+
+  def test_optional_arguments_can_be_given
+    with_command_args("only") {
+      @cmd_line.uses_optional_arg(:arg)
+      @cmd_line.fill
+      assert_equal('only', @cmd_line[:arg])
+    }
+  end
+
+
+  def test_that_optional_singleton_arguments_still_precludes_two
+    # Note that the error check is done at fill time, not apply time.
+    with_command_args("one two") {
+      @cmd_line.uses_optional_arg(:arg)
+      output = capturing_stderr do
+        assert_wants_to_exit do    
+          @cmd_line.fill
+        end
+      end
+      assert_match(/Error in the command line:.*2 arguments given, 0 or 1 expected./, output)
+    }
+  end
+  
+  def test_arg_external_name_is_friendly
+    @cmd_line.uses_arg(:fred)
+    assert_equal("the argument list", @cmd_line.external_names[:fred])
+  end
+  
+  
+  def test_optional_arg_external_name_is_friendly
+    @cmd_line.uses_optional_arg(:fred)
+    assert_equal("the argument list", @cmd_line.external_names[:fred])
+  end
+
 end
 
                     ### Option-Handling Style ###
 
-class OPTION_STYLE_CommandLineTest < Test::Unit::TestCase
+class OPTION_STYLE_CommandLineTest < CommandLineTestCase
   include UserChoices
-
-  Arglist_def = proc { | c | 
-    c.uses_switch(:switch, "--switch")
-    c.uses_arglist(:args)
-  }
+  
+  def define(klass)
+    @cmd_line = klass.new
+    @cmd_line.uses_switch(:switch, "--switch")
+    @cmd_line.uses_arglist(:args)
+    @cmd_line.fill
+  end
 
   def test_default_style_is_permutation
     with_command_args('3 --switch 5') {
-      choices = CommandLineChoices.fill(&Arglist_def)
-      assert_equal('true', choices[:switch])
-      assert_equal(['3', '5'], choices[:args])
+      define(CommandLineChoices)
+      assert_equal('true', @cmd_line[:switch])
+      assert_equal(['3', '5'], @cmd_line[:args])
     }
   end
 
   def test_subclass_allows_all_options_before_arguments
     with_command_args('3 --switch 5') { 
-      choices = PosixCommandLineChoices.fill(&Arglist_def)
-      assert_equal(nil, choices[:switch])
-      assert_equal(['3', '--switch', '5'], choices[:args])
+      define(PosixCommandLineChoices)
+      assert_equal(nil, @cmd_line[:switch])
+      assert_equal(['3', '--switch', '5'], @cmd_line[:args])
     }
   end
 
   def test_choosing_posix_parsing_does_not_override_environment_variable
     with_environment_vars('POSIXLY_CORRECT' => 'hello') do
       with_command_args('3 --switch 5') { 
-        choices = PosixCommandLineChoices.fill(&Arglist_def)
+        define(PosixCommandLineChoices)
         assert_equal('hello', ENV['POSIXLY_CORRECT'])
       }
     end
@@ -253,16 +375,15 @@ end
                         ### Error Handling ###
 
 # Additional commandline-specific error checking.
-class ERROR_CommandLineTest < Test::Unit::TestCase
+class ERROR_CommandLineTest < CommandLineTestCase
   include UserChoices
 
   def test_invalid_option_produces_error_message_and_exit
     with_command_args('--doofus 3') {
       output = capturing_stderr do
         assert_wants_to_exit do
-          choices = CommandLineChoices.fill do | c |
-            c.uses_option(:doofus, "--option VALUE")
-          end
+          @cmd_line.uses_option(:doofus, "--option VALUE")
+          @cmd_line.fill
         end
       end
 
@@ -274,9 +395,8 @@ class ERROR_CommandLineTest < Test::Unit::TestCase
     with_command_args('--doofus') {
       output = capturing_stderr do
         assert_wants_to_exit do
-          choices = CommandLineChoices.fill do | c |
-            c.uses_option(:doofus, "--doofus VALUE")
-          end
+          @cmd_line.uses_option(:doofus, "--doofus VALUE")
+          @cmd_line.fill
         end
       end
       
@@ -288,14 +408,13 @@ class ERROR_CommandLineTest < Test::Unit::TestCase
     with_command_args('wanted --wanted') {
       output = capturing_stderr do
         assert_wants_to_exit do
-          choices = CommandLineChoices.fill { | c |
             default_isbn = "343"
-            c.help_banner("Usage: ruby prog [options] [isbn]",
+            @cmd_line.help_banner("Usage: ruby prog [options] [isbn]",
                           "This and further strings are optional.")
-            c.uses_option(:option, "-o", "--option=VALUE",
+            @cmd_line.uses_option(:option, "-o", "--option=VALUE",
                           "Message about option",
                           "More about option")
-          }
+            @cmd_line.fill
         end
       end
 
@@ -315,95 +434,30 @@ end
 
 # Here are a variety of ways of writing the error messages
 
-class ERROR_FORMATTING_CommandLineTest < Test::Unit::TestCase
+class ERROR_FORMATTING_CommandLineTest < CommandLineTestCase
   include UserChoices
 
   def test_range_violation_descriptions
     # Good about plurals.
-    assert_raises_with_matching_message(StandardError,
-            /2 arguments given, 3 expected/) {
-      CommandLineChoices.claim_arglist_arity_OK(2, 3)
-    }
+    assert_match(/2 arguments given, 3 expected/,
+                 @cmd_line.arglist_arity_error(2, 3))
 
-    assert_raises_with_matching_message(StandardError,
-            /1 argument given, 3 expected/) {
-      CommandLineChoices.claim_arglist_arity_OK(1, 3)
-    }
+    assert_match(/1 argument given, 3 expected/,
+                 @cmd_line.arglist_arity_error(1, 3))
 
-    assert_raises_with_matching_message(StandardError,
-            /0 arguments given, 1 expected/) {
-      CommandLineChoices.claim_arglist_arity_OK(0, 1)
-    }
+    assert_match(/0 arguments given, 1 expected/,
+                 @cmd_line.arglist_arity_error(0, 1))
 
     # Handle both types of ranges.
-    assert_raises_with_matching_message(StandardError,
-            /2 arguments given, 3 to 5 expected/) {
-      CommandLineChoices.claim_arglist_arity_OK(2, 3..5)
-    }
-    assert_raises_with_matching_message(StandardError,
-            /1 argument given, 3 to 5 expected/) {
-      CommandLineChoices.claim_arglist_arity_OK(1, 3...6)
-    }
+    assert_match(/2 arguments given, 3 to 5 expected/, 
+                 @cmd_line.arglist_arity_error(2, 3..5))
+    assert_match(/1 argument given, 3 to 5 expected/, 
+                 @cmd_line.arglist_arity_error(1, 3...6))
+                 
+    # Use 'or' if there are only two alternatives.
+    assert_match(/2 arguments given, 3 or 4 expected/, 
+                 @cmd_line.arglist_arity_error(2, 3..4))
+    
   end
-
-
-  def test_a_singleton_arg_will_not_be_in_a_list
-    with_command_args("arg-only") {
-      hash = CommandLineChoices.fill do | c |
-        c.uses_option(:unused, "--unused VALUE")  # just for grins
-        c.uses_arg(:arg)
-      end
-      assert_true(hash.has_key?(:arg))
-      assert_equal("arg-only", hash[:arg])
-    }
-  end
-
-  def test_singleton_args_generate_errors
-    with_command_args("") {
-      output = capturing_stderr do
-        assert_wants_to_exit do
-          hash = CommandLineChoices.fill do | c |
-            c.uses_arg(:arg)
-          end
-        end
-      end
-
-      assert_match(/0 arguments given, 1 expected./, output)
-    }
-  end
-
-  def test_singleton_arguments_can_take_ranges_to_make_them_optional
-    with_command_args("") {
-      hash = CommandLineChoices.fill do | c |
-        c.uses_arg(:arg, 0..1)
-      end
-      assert_false(hash.has_key?(:arg))
-      assert_equal(nil, hash[:arg])
-    }
-  end
-
-  def test_that_optional_singleton_arguments_still_precludes_two
-    with_command_args("one two") {
-      output = capturing_stderr do
-        assert_wants_to_exit do
-          hash = CommandLineChoices.fill do | c |
-            c.uses_arg(:arg, 0..1)
-          end
-        end
-      end
-
-      assert_match(/2 arguments given, 0 to 1 expected/, output)
-    }
-  end
-
-  def test_shorthand_for_optional_arg_omits_explicit_range
-    with_command_args("") {
-      hash = CommandLineChoices.fill do | c |
-        c.uses_optional_arg(:arg)
-      end
-      assert_false(hash.has_key?(:arg))
-      assert_equal(nil, hash[:arg])
-    }
-  end
-
 end
+

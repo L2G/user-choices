@@ -19,11 +19,11 @@ class MultipleSourcesExample < Command
   #
   # YamlConfigFileChoices reads from a given YAML file. The choices in the
   # config file have the same spelling as the choice name (without the
-  # colon in front of the symbol).
+  # colon that makes the choice name a symbol).
   #
   # XmlConfigFileChoices reads from a given XML file. The choices in the
   # config file have the same spelling as the choice name (without the
-  # colon in front of the symbol).
+  # colon that makes the choice name a symbol).
 
   def add_sources(builder)
     builder.add_source(CommandLineChoices, :usage,

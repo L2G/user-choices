@@ -19,8 +19,8 @@ class ArgNotingCommand < Command
   end
 
   def add_choices(builder)
-    builder.add_choice(:args) { | command_line |
-      command_line.uses_arglist(2)
+    builder.add_choice(:args, :length => 2) { | command_line |
+      command_line.uses_arglist
     }
   end
 
