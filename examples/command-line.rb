@@ -23,7 +23,7 @@ class CommandLineExample < Command
 
   def add_sources(builder)
     builder.add_source(CommandLineChoices, :usage,
-                       "Usage ruby #{$0} [options] names...")
+                       "Usage: ruby #{$0} [options] names...")
   end
 
   # Each individual choice is named with a symbol. The block

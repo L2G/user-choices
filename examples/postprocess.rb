@@ -14,7 +14,7 @@ class ArgNotingCommand < Command
 
   def add_sources(builder)
     builder.add_source(CommandLineChoices, :usage,
-                       "Usage ruby #{$0} [options] infile outfile")
+                       "Usage: ruby #{$0} [options] infile outfile")
     
   end
 

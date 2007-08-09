@@ -1,0 +1,518 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+	<title>Using User-Choices</title>
+	
+</head>
+
+<body>
+<h1 style="text-align: center">Using the User-Choices gem</h1>
+<p style="text-align: center"><a href="http://www.exampler.com/blog/" title="Exploration Through Example - Brian Marick's Blog">Brian Marick</a>, <a href="http://www.exampler.com" title="Exampler Consulting">Exampler Consulting</a></p>
+
+<p>
+	Suppose you have a command-line application that uses some number of <i>connections</i>. Most of the time, a user will want the same number of connections, so you want them to be able to set that in a configuration file. But sometimes they'll want a different number. For a one-time change, you'll let them set it with a command-line option. For a change that lasts a whole session, you'll let them set it in an environment variable.
+</p>
+<p>
+	What the user-choices gem does is give your code a unified interface to all those sources of choices, so that it doesn't have to care how the user made the choice.
+</p>
+
+<p>
+	This tutorial explains how to set up that interface. See also the <a href="http://user-choices.rubyforge.org/rdoc/" title="user-choices API">API documentation</a> and the <i>examples</i> directory in the source.
+</p>
+
+<h2>1. Using the choices</h2>
+<p>
+	Your program will use a variant of the <a href="http://en.wikipedia.org/wiki/Command_pattern" title="Command pattern - Wikipedia, the free encyclopedia">Command pattern</a>. Its rough structure will look like this:
+</p>
+
+<blockquote><table bgcolor="white" border="0"><tr><td>
+<code>
+require 'user-choices' <br />
+&nbsp; <br />
+class TutorialExample < UserChoices:<font style="color: #800020;">:Command</font> <br />
+&nbsp;&nbsp;include UserChoices <br />
+&nbsp; <br />
+&nbsp;&nbsp;<font style="color: #002FBD;">def</font> <font style="color: #600080;">add_sources(builder)</font>... <br />
+&nbsp;&nbsp;<font style="color: #002FBD;">def</font> <font style="color: #600080;">add_choices(builder)</font>... <br />
+<br />
+&nbsp;&nbsp;<font style="color: #002FBD;">def</font> <font style="color: #600080;">execute</font> <br />
+&nbsp;&nbsp;&nbsp;&nbsp;puts "There are <font style="color: #800020;">#{<font style="color: #806000;">@user_choices</font>[<font style="color: #800020;">:connections</font>]} connections."</font> <br />
+&nbsp;&nbsp;&nbsp;&nbsp;pp <font style="color: #806000;">@user_choices</font> <br />
+&nbsp;&nbsp;<font style="color: #002FBD;">end</font> <br />
+<font style="color: #002FBD;">end</font> <br />
+&nbsp; <br />
+&nbsp; <br />
+if $0 == __FILE__ <br />
+&nbsp;&nbsp;TutorialExample.new.execute <br />
+<font style="color: #002FBD;">end</font> <br />
+</code>
+
+</td></td></table></blockquote>
+
+<p>
+	Your entire program runs within the <code>execute</code> method of your <code>Command</code> object. The instance variable <code>@user_choices</code> is a hash whose keys are symbols you've used to name the choices and whose values are the user's choices.
+</p>
+
+<p>
+	Within <code>add_choices</code> I've set up the choices to default to 0, so if I were to run the program without making any choices, I'd get this result:
+</p>
+
+<blockquote>
+	<code>
+		$ ruby tutorial1.rb<br/>
+		There are 0 connections.<br/>
+		{:connections=>0}<br/>
+	</code>
+</blockquote>
+
+<p>In the <code>add_sources</code> method, I've also told <code>TutorialExample</code> to obey a <code>.myprog-config.yml</code> file in my home directory. Suppose it looks like this:</p>
+
+<blockquote>
+	<code>
+		connections: 19
+	</code>
+</blockquote>
+
+<p>In that case, the output would be:</p>
+
+<blockquote>
+	<code>
+		$ ruby tutorial1.rb<br/>
+		There are 19 connections.<br/>
+		{:connections=>19}	<br/>
+	</code>
+</blockquote>
+
+<p>
+	The configuration file value took precedence over the default. An environment variable's value can, in turn, take precedence over that:
+</p>
+
+<blockquote>
+	<code>
+		$ (export myprog_connections=3; ruby tutorial1.rb) <br/>
+		There are 3 connections. <br/>
+		{:connections=>3} <br/>
+	</code>
+</blockquote>
+
+<p>
+	And a command-line choice can take precedence over the environment:
+</p>
+
+<blockquote>
+	<code>
+		$ (export myprog_connections=3; ruby tutorial1.rb <b>--connections 999</b>) <br/>
+		There are 999 connections. <br/>
+		{:connections=>999} <br/>
+	</code>
+</blockquote>
+
+		<p>Part of the point of User-Choices is reasonably helpful error messages. For example, here's the result of a bad value for the number of connections:
+			<blockquote>
+				<code>
+					> (export myprog_connections=hi; ruby tutorial1.rb)<br />
+					Error in the environment: myprog_connections's value must be an integer, and 'hi' doesn't look right.<br />
+						 				</code></blockquote>
+
+<p>Notice that the error messsage is in terms of the source (the environment variable "myprog_connections" rather than the internal symbol <code>:connections</code>). In the case of a command-line error, more help text is printed:</p>
+
+<blockquote>
+	<code>
+		$ ruby tutorial1.rb --connections hi <br />
+		Error in the command line: --connections's value must be an integer, and 'hi' doesn't look right. <br />
+		Usage: ruby tutorial1.rb [options] <br />
+ <br />
+		Options: <br />
+		    -c, --connections COUNT          Number of connections to open. <br />
+		    -?, -h, --help                   Show this message.	<br />	</code></blockquote>
+
+
+<h2>2. Configuring the sources</h2>
+<p>
+	The different sources for the tutorial program are configured in <code>add_sources</code>:
+	
+	<blockquote><table bgcolor="white" border="0"><tr><td>
+	<code>
+	&nbsp;&nbsp;<font style="color: #002FBD;">def</font> <font style="color: #600080;">add_sources</font>(builder) <br />
+	&nbsp;&nbsp;&nbsp;&nbsp;builder.add_source(CommandLineChoices, <font style="color: #800020;">:usage</font>, <br />
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Usage ruby #{$0} [options]")<br />
+	&nbsp;&nbsp;&nbsp;&nbsp;builder.add_source(EnvironmentChoices, <font style="color: #800020;">:with_prefix</font>, "myprog_") <br />
+	&nbsp;&nbsp;&nbsp;&nbsp;builder.add_source(YamlConfigFileChoices, <font style="color: #800020;">:from_file</font>, ".myprog-config.yml") <br />
+	&nbsp;&nbsp;<font style="color: #002FBD;">end</font> <br />
+	&nbsp; <br />
+	</code>
+
+	</td></td></table></blockquote>
+	
+<p><code>add_sources</code> takes a <code>ChoicesBuilder</code> object that you configure with the choices you want to allow. Each <code>add_source</code> call describes a different source for choices. The calls should be made in precedence order, highest to lowest. The <code>DefaultChoices</code> comes automatically, so you don't need to list it.
+</p>	
+<p>	
+	The sources are distinguished by the names of classes. Each class takes different arguments. Notice that the arguments are in a weird pseudo-keyword style:
+	<blockquote>
+		builder.add_source(<i>ClassName</i>, <font style="color: #800020;">:<i>symbol</i></font>, <i>one or more args</i>, <font style="color: #800020;">:<i>symbol</i></font>, <i>one or more args</i>, ...)
+	</blockquote>
+</p>
+
+<p>I make no apologies. Well, maybe one or two.</p>
+
+<dl>
+	<dt><b>EnvironmentChoices</b></dt>
+	<dd>
+		<p>
+			There are two ways of specifying which environment  variables should be considered choices for this program. They can be combined.
+		</p>
+		<ul>
+			<li>
+				<p>
+					<b><code><font style="color: #800020;">:with_prefix</font>, "prefix"</code></b> says that any environment variable beginning with the prefix is a user choice that matters to this program. The symbol-name of the choice is constructed from the environment variable name, less the prefix. So if the prefix is "amazon_", the environment variable "amazon_login" produces choice <font style="color: #800020;">:login</font>.
+				</p>
+			</li>
+			<li>
+				<p>
+					<b><code><font style="color: #800020;">:mapping</font>, <i>hash</i></code></b> gives an explicit map between choice names and environment variable names. So if the hash is <code>{<font style="color: #800020;">:home</font> => "HOME", <font style="color: #800020;">:shell_level</font> => "SHLVL"}</code>, the program would (on my machine) have <code>@user_choices[<font style="color: #800020;">:home</font>]</code> be "/Users/marick" and <code>@user_choices[<font style="color: #800020;">:shell_level</font>]</code> be 1.
+				</p>
+			</li>
+		</ul>
+	<dd>
+		
+	<dt><b>YamlConfigFileChoicesChoices</b></dt>
+	<dd>
+		<p>
+		<b><code><font style="color: #800020;">:from_file</font>, "filename"</code></b> says that the user choices are in a <a href="http://yaml.org/" title="YAML Ain't Markup Language">YAML</a> file named "filename" in the user's home directory. The home directory is found the same way RubyGems finds it. 
+		</p>
+		<p>
+			YAML files should contain a single level of keys and values. The values can be numbers, strings, and arrays of numbers or strings. Here is an acceptable file:
+			</p>
+			<blockquote>
+				ordinary_choice: 2<br/>
+				names:<br/>
+				&nbsp;&nbsp;    - dawn<br/>
+				&nbsp;&nbsp;    - paul<br/>
+				&nbsp;&nbsp;    - sophie<br/>
+
+			</blockquote>
+			<p>
+				The keys are turned into symbols and become the choice names. The above file produces <font style="color: #800020;">:ordinary_choice</font> and <font style="color: #800020;">:names</font>. If the key has a dash in it, that's converted to an underscore.</p>
+<p>				The values, by default, are strings (or arrays of strings), though that can be overridden when the choice is described. 
+			</p>
+			<p>
+			The results of more complicated files are undefined.
+			</p>
+	</dd>
+		
+	<dt><b>XmlConfigFileChoices</b></dt>
+	<dd>
+<p>	<b><code><font style="color: #800020;">:from_file</font>, "filename"</code></b> says that the user choices are in a XML file named "filename" in the user's home directory. The home directory is found the same way RubyGems finds it. 
+	</p>
+	<p>
+		Here is an acceptable XML file:
+		</p>
+		<blockquote>
+			&lt;config&gt;
+				&lt;ordinary_choice&gt;2&lt;/ordinary_choice&gt;
+				&lt;names&gt;dawn&lt;/names&gt;
+				&lt;names&gt;paul&lt;/names&gt;
+				&lt;names&gt;sophie&lt;/names&gt;
+			&lt;/config&gt;
+		</blockquote>
+		<p>
+			The root tag (<code>&lt;config&gt;</code>) is irrelevant. Name it what you like. The tag names are converted into choice symbols, so <code>&lt;ordinary_choice&gt;</code> becomes <font style="color: #800020;">:ordinary_choice</font>. If the tag name contains a dash, it's converted into an underscore.
+		</p>
+		<p>
+			Tag text contents have whitespace stripped off, then become string choice values. (The default typing can be changed in <code>add_choices</code>.) Notice that if you want a list of values, you repeat the tag multiple times (as in &lt;names&gt; above). 
+			</p>
+		<p>
+		The results of more complicated files are undefined.
+		</p>
+	
+	</dd>
+		
+	<dt><b>CommandLineChoices</b></dt>
+	<dd>
+		<p>
+			User-Choices uses <a href="http://www.ruby-doc.org/stdlib/" title="Ruby Standard Library Documentation: OptionParser">OptionParser</a> to handle command lines. The definitions associated with the <code>CommandLineChoices</code> given to <code>OptionParser</code> in a way that produces useful help output, gotten by giving the program the <code>--help</code> option. (It's also printed when errors are discovered in the command line.)
+		</p>
+		<p>
+		
+		<b><code><font style="color: #800020;">:usage</font>, "line"...</code></b> hands <code>OptionParser</code> the lines printed before any command-line switches or options. It should look something like this: 
+		</p>
+		
+		<blockquote>
+			<code>
+				<blockquote><table bgcolor="white" border="0"><tr><td>
+				<code>
+				&nbsp;&nbsp;&nbsp;&nbsp;builder.add_source(CommandLineChoices, <font style="color: #800020;">:usage</font>, <br />
+				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Usage: ruby <font style="color: #800020;">#{$0} [options] input-file output-file",</font> <br />
+				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Encode the input file into the output file.") <br />
+				&nbsp; <br />
+				</code>
+
+				</td></td></table></blockquote>
+
+</code></blockquote>				
+	</dd>
+</dd>
+	
+<h2>3. Configuring the choices</h2>
+<p>
+	Once the sources of choices have been named, each different choice needs to be described. Here's the description for the tutorial program:
+</p>
+<blockquote><table bgcolor="white" border="0"><tr><td>
+<code>
+&nbsp;&nbsp;<font style="color: #002FBD;">def</font> <font style="color: #600080;">add_choices</font>(builder) <br />
+&nbsp;&nbsp;&nbsp;&nbsp;builder.add_choice(<font style="color: #800020;">:connections</font>, <font style="color: #800020;">:type</font>=><font style="color: #800020;">:integer</font>, :<font style="color: #800020;">default</font>=>0) { | command_line | <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;command_line.uses_option("-c", "--connections COUNT", <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Number of connections to open.") <br />
+&nbsp;&nbsp;&nbsp;&nbsp;} <br />
+&nbsp;&nbsp;<font style="color: #002FBD;">end</font> <br />
+</code>
+
+</td></td></table></blockquote>
+<p>
+	In this case, there's one choice (<font style="color: #800020;">:connections</font>). The keyword arguments say that the string fetched from a source should be converted into an integer. (A StandardError is raised if the string doesn't look like an integer.) If no source describes <font style="color: #800020;">:connections</font>, it gets the default value 0. If no default were given, the key <font style="color: #800020;">:connections</font> would not appear in the <code>@user_choices</code> hash (and so <code>@user_choices[<font style="color: #800020;">:connections</font>]</code> would be <code>nil</code>).
+</p>
+
+<p>The block argument is used to do additional setup for the command-line. That'll be explained shortly.
+</p>
+
+<h3>A sampling of keyword arguments</h3>
+<ul>
+	<li><p>
+		The <b><font style="color: #800020;">:type</font></b> keyword describes type checking and conversion that should be done. In all cases, it's fine if the conversion has already been done (which is often the case when a default value is given). If no <font style="color: #800020;">:type</font> argument is given, the choice stays a string.
+		</p>
+		
+		<p>
+			Normal YAML parsing converts the string data into native types. (So that "count: 1" is automatically parsed into <code>{"count" => 1}</code>. These conversions <em>do not happen</em> in User-Choices because there's no equivalent for other sources like XML.)
+		</p>
+		<dl>
+			<dt><font style="color: #800020;">:type</font> => <b><font style="color: #800020;">:integer</font></b></dt>
+			<dd><p>
+				Convert the string into an integer. Accepts whatever <code>String#to_i</code> does.
+			</p></dd>
+
+			<dt><font style="color: #800020;">:type</font> => <b><font style="color: #800020;">:boolean</font></b></dt>
+			<dd><p>
+				Convert the string into either <code>true</code> or <code>false</code>. The string must be one of "true" or "false" (case-insensitive).
+			</p></dd>
+
+			<dt><font style="color: #800020;">:type</font> => <b><font style="color: #800020;">[:string]</font></b></dt>
+				
+			<dd><p>
+				The string is split at comma boundaries to become an array of strings. Whitespace is <em>not</em> stripped. This type need only be declared when the data could come from a command-line argument of this form: <code>--names a,b,c</code> or an environment variable like <code>NAMES="a,b,c"</code>. YAML and XML files describe the data so that User-Choices doesn't need help to know you want an array.
+			</p></dd>
+
+			<dt><font style="color: #800020;">:type</font> => <i>["one", "two", ...]</i></dt>
+			<dd><p>
+				The choice must be one of the list of strings. There's no conversion.
+			</p></dd>
+
+		</dl>
+	</p></li>
+
+	<li><p>
+		The <font style="color: #800020;">:length</font></b> keyword applies only when the choice is converted to an array. It takes either an integer or range. A UserError with a helpful message is raised if the actual length doesn't match.
+	</p></li>
+
+	<li><p>
+		The <font style="color: #800020;">:default</font></b> keyword gives a default value for a choice. That value is type-checked if a type is given.  (But note that type-checking succeeds if the default value is already of the correct type. There's no need to use <code>"1"</code> for a choice of type :integer. You can use the more natural <code>1</code>. )
+	</p></li>
+</ul>
+<h3>Command-line configuration</h3>
+<p>
+	The block given to <code>:add_choice</code> serves as a front end to <a href="http://www.ruby-doc.org/stdlib/" title="Ruby Standard Library Documentation: OptionParser">OptionParser</a>. It also lets you treat command-line arguments as just another kind of user choice (rather than having to mess around with ARGV).
+</p>
+<p>
+	Within the block, you can send these messages to the block's argument:
+</p>
+
+<dl>
+	<dt><b>uses_option(<i>string</i>...)</b></dt>
+	<dd>
+		<p>
+			The strings are passed on to OptionParser#on. There are quite possibly variations that don't work well. (If you find any, <a href="mailto:marick@exampler.com">send me mail</a>.)The common variation that definitely works looks like this:
+		</p>
+		
+		<blockquote><table bgcolor="white" border="0"><tr><td>
+		<code>
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;command_line.uses_option("-c", "--connections COUNT", <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Number of connections to open.") <br />
+		</code>
+		
+		</td></td></table></blockquote>
+		<p>The first argument is the short form of the option, the second the long form, and any remaining lines are documentation to print in the help text. Given the above, any of these are acceptable:
+</p>			
+
+	<blockquote><code>
+		$ ruby tutorial1.rb -c 2
+		$ ruby tutorial1.rb -c2
+		$ ruby tutorial1.rb --connections 2
+		$ ruby tutorial1.rb --connections=2
+		$ ruby tutorial1.rb --conn 2
+	</code></blockquote>
+		
+	</dd>
+	
+	<dt><b>uses_switch("-<i>s</i>", "--<i>switch</i>", <i>string</i>...)</b></dt>
+	<dd>
+		<p>
+			Switches are almost like options, but they don't take arguments. If the switch is given, the user choice is "true". If its inverse (see below) is given, the choice is "false". Otherwise, the default is used. Here's a typical example:
+		</p>
+		
+		<blockquote><table bgcolor="white" border="0"><tr><td>
+		<code>
+		&nbsp;&nbsp;&nbsp;&nbsp;builder.add_choice(<font style="color: #800020;">:ssh</font>, <font style="color: #800020;">:type</font>=><font style="color: #800020;">:boolean</font>, :<font style="color: #800020;">default</font>=>false) { | command_line | <br />
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;command_line.uses_switch("-s", "--ssh", <br />
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Use ssh to open connection.") <br />
+		&nbsp;&nbsp;&nbsp;&nbsp;} <br />
+		</code>
+		
+		</td></td></table></blockquote>
+		<p>The <font style="color: #800020;">:type</font> is set to boolean. If it's not set, the choice will be a string like "true" or "false", not a true boolean.</p>
+		<p>
+			A user tells the program to use SSH in one of these ways:
+		</p>
+
+		
+		<blockquote><code>
+			$ ruby tutorial2.rb --ssh <br />
+			SSH should be used. <br />
+			$ ruby tutorial2.rb --s   <br />
+			SSH should be used. <br />
+		</code></blockquote>
+		
+		<p>SSH is turned off like this:</p>
+		
+		<blockquote><code>
+		 $ ruby tutorial2.rb --no-ssh <br />
+		SSH should not be used. <br />
+		</code></blockquote>
+		
+		<p>
+			(Turning the switch off is pointless in this case, since the default is false.) The documentation explains both options:
+			
+		</p>
+		<blockquote><code>
+			$ ruby tutorial2.rb --help <br />
+			Usage: ruby tutorial2.rb [options] <br />
+ <br />
+			Options: <br />
+			    -c, --connections COUNT          Number of connections to open. <br />
+			    <b>-s, --[no-]ssh                   Use ssh to open connection.</b> <br />
+			    -?, -h, --help                   Show this message. <br />
+		</code></blockquote>
+			
+	</dd>
+	
+	<dt><b>uses_arglist</b></dt>
+	<dd>
+		<p>
+			The command line argument list can be treated as another choice:
+		</p>
+		
+		<blockquote><table bgcolor="white" border="0"><tr><td>
+		<code>
+		&nbsp;&nbsp;&nbsp;&nbsp;builder.add_choice(<font style="color: #800020;">:files</font>) { | command_line | <br />
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;command_line.uses_arglist <br />
+		&nbsp;&nbsp;&nbsp;&nbsp;} <br />
+		</code>
+
+		</td></td></table></blockquote>
+		
+		<blockquote><code>
+		 $ ruby tutorial2.rb arg1 arg2
+		SSH should not be used.
+		There are 19 connections.
+		{<b>:files=>["arg1", "arg2"]</b>, :ssh=>false, :connections=>19}
+		</code></blockquote>
+		
+		<p>
+			The choice can also be specified in other sources, like configuration files. What should happen if no command-line arguments are given? If it's treated as the empty array, other lesser-priority sources could never affect the outcome. So, instead, if no command-line arguments were given, that's treated just like a command-line option that's not mentioned: nothing is put into the @user-choices array. That allows configuration files to have an effect. For example, suppose this is a YAML file:
+			</p>
+			
+			<blockquote><code>
+				connections: 19 <br />
+				files: <br />
+				&nbsp;&nbsp;  - one <br />
+				&nbsp;&nbsp;  - two <br />
+				</code></blockquote>
+				
+				<p>
+					A one or more argument command line will take precedence:
+</p>
+
+<blockquote><code>
+$ ruby tutorial2.rb cmd <br />
+SSH should not be used. <br />
+There are 19 connections. <br />
+{<b>:files=>["cmd"]</b>, :ssh=>false, :connections=>19}			 <br />
+</code></blockquote>
+
+<p>
+	But an empty command line will yield to the YAML file:
+</p>
+<blockquote><code>
+	$ ruby tutorial2.rb <br />
+	SSH should not be used. <br />
+	There are 19 connections. <br />
+	{<b>:files=>["one", "two"]</b>, :ssh=>false, :connections=>19} <br />
+</code></blockquote>
+
+	</dd>
+	
+	<p>
+		There is no need to <font style="color: #800020;">:type</font> the choice, since that's obvious from context. If you want to limit the length of the command-line, you can add a <font style="color: #800020;">:length</font> argument:
+</p>
+
+<blockquote><table bgcolor="white" border="0"><tr><td>
+<code>
+&nbsp;&nbsp;&nbsp;&nbsp;builder.add_choice(<font style="color: #800020;">:files</font>, <b><font style="color: #800020;">:length</font> => 1..2</b>) { | command_line | <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;command_line.uses_arglist <br />
+&nbsp;&nbsp;&nbsp;&nbsp;} <br />
+</code>
+
+</td></td></table></blockquote>
+
+<blockquote><code>
+	 $ ruby tutorial2.rb 1 2 3 <br />
+	<b>Error in the command line: 3 arguments given, 1 or 2 expected.</b> <br />
+	Usage: ruby tutorial2.rb [options] file1 [file2] <br />
+ <br />
+	Options: <br />
+	    -c, --connections COUNT          Number of connections to open. <br />
+	    -s, --[no-]ssh                   Use ssh to open connection. <br />
+	    -?, -h, --help                   Show this message. <br />
+</code></blockquote>
+	<p>
+		What happens if the user gives no arguments on the command line, considering that the <font style="color: #800020;">:length</font> asks for one or two? It is <em>not</em> an error because the YAML file supplies two arguments:
+	</p>
+<blockquote><code>
+	$ ruby tutorial2.rb <br />
+	SSH should not be used. <br />
+	There are 19 connections. <br />
+	{:files=>["one", "two"], :ssh=>false, :connections=>19} <br />
+</code></blockquote>
+	
+	<dt><b>uses_arg</b></dt>
+	<dd>
+		<p>
+			
+		</p>
+	</dd>
+	
+	<dt><b>uses_arg</b></dt>
+	<dd>
+		<p>
+			
+		</p>
+	</dd>
+	
+</dl>
+
+
+<h2>4. Postprocessing choices</h2>
+</body>
+</html>

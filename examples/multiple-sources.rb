@@ -7,9 +7,9 @@ require 's4t-utils/load-path-auto-adjuster'
 
 require 'pp'
 require 'user-choices'
-include UserChoices
 
-class MultipleSourcesExample < Command
+class MultipleSourcesExample < UserChoices::Command
+  include UserChoices
 
   # Here are the four sources currently available. 
   #
@@ -27,7 +27,7 @@ class MultipleSourcesExample < Command
 
   def add_sources(builder)
     builder.add_source(CommandLineChoices, :usage,
-                       "Usage ruby #{$0} [options] names...")
+                       "Usage: ruby #{$0} [options] names...")
     builder.add_source(EnvironmentChoices, :with_prefix, "ms_")
     builder.add_source(YamlConfigFileChoices, :from_file, "ms-config.yml")
     builder.add_source(XmlConfigFileChoices, :from_file, "ms-config.xml")

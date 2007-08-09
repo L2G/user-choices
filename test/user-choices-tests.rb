@@ -178,6 +178,16 @@ class EnvironmentChoicesTest < Test::Unit::TestCase
     end
   end
 
+  def test_the_environment_args_can_use_empty_string_as_the_prefix
+    # Though it's a silly thing to do.
+    with_environment_vars('amazon_option' => "1") do
+      choices = EnvironmentChoices.new.with_prefix('')
+      choices.fill
+      assert_true(choices.has_key?(:amazon_option))
+      assert_equal('1', choices[:amazon_option])
+    end
+  end
+
   def test_the_environment_args_of_interest_can_be_listed_explicitly
     with_environment_vars('amazon_option' => "1",
                           'root' => 'ok',
@@ -197,6 +207,18 @@ class EnvironmentChoicesTest < Test::Unit::TestCase
     with_environment_vars('amazon_o' => "1",
                           'other_option' => 'still found') do
       choices = EnvironmentChoices.new.with_prefix('amazon_').mapping(:other => 'other_option')
+      choices.fill
+
+      assert_equal(2, choices.size)
+      assert_equal('1', choices[:o])
+      assert_equal('still found', choices[:other])
+    end
+  end
+  
+  def test_the_order_of_combination_does_not_matter
+    with_environment_vars('amazon_o' => "1",
+                          'other_option' => 'still found') do
+      choices = EnvironmentChoices.new.mapping(:other => 'other_option').with_prefix('amazon_')
       choices.fill
 
       assert_equal(2, choices.size)
@@ -301,6 +323,13 @@ class FileChoicesTestCase < Test::Unit::TestCase
     end
   end
 
+  def test_dashed_choice_names_are_underscored
+    with_local_config_file('.amazonrc', "<config><the-name>5</the-name></config>") do
+      choices = XmlConfigFileChoices.new.from_file('.amazonrc')
+      choices.fill
+      assert_equal('5', choices[:the_name])
+    end
+  end
 
   
 end

@@ -14,7 +14,7 @@ class SwitchExample < Command
 
   def add_sources(builder)
     builder.add_source(CommandLineChoices, :usage,
-                       "Usage ruby #{$0} [options] args...",
+                       "Usage: ruby #{$0} [options] args...",
                        "There may be 2-4 arguments.")
     
   end
@@ -22,8 +22,7 @@ class SwitchExample < Command
   # Switches are slightly different than options. (The difference is
   # in how they're invoked, as either --switch or --no-switch.) Almost
   # certainly, you want the switch to be of type :boolean and have a
-  # default.  Note that the default - like all
-  # pre-type-conversion-values - should be a string.
+  # default.
   def add_choices(builder)
     builder.add_choice(:switch,
                        :default => 'false',
