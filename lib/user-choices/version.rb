@@ -1,3 +1,3 @@
 module UserChoices
-  Version = '0.2.0'
+  Version = '1.1.0'
 end

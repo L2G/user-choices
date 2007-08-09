@@ -1,2 +1,15 @@
+Version 1.1.0
+  * Minor, incompatible changes to the API.
+  * Command-line arglist handling now works with other sources the
+    way options do. In particular, an empty arglist can, for example, 
+    have its value given by defaults rather than locking the value
+    of the choice down to the empty array.
+  * Command-line arglists used to have their length specified independently
+    of all other sources. Now there's a :length "type" that applies to all
+    sources, including the command line. From the user's point of view,     
+    though, wrong-sized arglists look like they're caught by OptionParser.
+  * These relatively minor changes required a bigger overhaul to the 
+    internals. They're less stupid, but I suspect they're still stupid.
+ 
 Version 1.0.0
   * Version from _Everyday Scripting with Ruby_
