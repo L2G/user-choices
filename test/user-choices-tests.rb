@@ -61,7 +61,7 @@ class TestExternallyFilledHash < Test::Unit::TestCase
 
     conversions = { :sym => [Conversion.for(:integer)] }
     assert_raises_with_matching_message(StandardError,
-            /Error in the test hash: name's value must be an integer, and 'val' doesn't look right/) {
+            /^Error in the test hash: name's value must be an integer, and 'val' doesn't look right/) {
       sh.apply(conversions)
     }
   end
@@ -73,7 +73,7 @@ class TestExternallyFilledHash < Test::Unit::TestCase
 
     conversions = { :sym => [Conversion.for(:boolean)] }
     assert_raises_with_matching_message(StandardError,
-            /Error in the test hash: name's value must be a boolean, and 'val' doesn't look right/) {
+            /^Error in the test hash: name's value must be a boolean, and 'val' doesn't look right/) {
       sh.apply(conversions)
     }
   end
@@ -85,7 +85,7 @@ class TestExternallyFilledHash < Test::Unit::TestCase
 
     conversions = { :sym => [Conversion.for(["foo", "bar"])] }
     assert_raises_with_matching_message(StandardError,
-            /Error in the test hash: name's value must be one of 'foo' or 'bar', and 'val' doesn't look right/) {
+            /^Error in the test hash: name's value must be one of 'foo' or 'bar', and 'val' doesn't look right/) {
       sh.apply(conversions)
     }
   end
@@ -98,7 +98,7 @@ class TestExternallyFilledHash < Test::Unit::TestCase
     conversions = { :sym => [Conversion.for([:string]),  # actually not needed.
                              Conversion.for(:length => 5)] }
     assert_raises_with_matching_message(StandardError,
-            /Error in the test hash: name's value must be of length 5, and \["one", "two"\] doesn't look right/) {
+            /^Error in the test hash: name's value must be of length 5, and \["one", "two"\] doesn't look right/) {
       sh.apply(conversions)
     }
   end
@@ -111,7 +111,7 @@ class TestExternallyFilledHash < Test::Unit::TestCase
     conversions = { :sym => [Conversion.for([:string]),  # actually not needed.
                              Conversion.for(:length => 3..5)] }
     assert_raises_with_matching_message(StandardError,
-            /Error in the test hash: name's value must be a list whose length is in this range: 3..5, and \["one", "two"\] doesn't look right/) {
+            /^Error in the test hash: name's value must be a list whose length is in this range: 3..5, and \["one", "two"\] doesn't look right/) {
       sh.apply(conversions)
     }
   end
@@ -151,7 +151,7 @@ class DefaultSourceTest < Test::Unit::TestCase
 
   def test_error_message_will_look_good
     assert_raises_with_matching_message(StandardError,
-            /Error in the default values: :a's value/) {
+            /^Error in the default values: :a's value/) {
       @choices.apply( :a => [Conversion.for(:integer)])
     }
   end
@@ -247,7 +247,7 @@ class EnvironmentSourceTest < Test::Unit::TestCase
   def test_value_checking_is_set_up_properly
     with_environment_vars('amazon_option' => "1") do
       assert_raises_with_matching_message(StandardError,
-            /Error in the environment: amazon_option's value/) {
+            /^Error in the environment: amazon_option's value/) {
         choices = EnvironmentSource.new.with_prefix('amazon_')
         choices.fill
         choices.apply(:option => [Conversion.for(:boolean)])

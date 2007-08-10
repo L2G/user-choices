@@ -78,7 +78,7 @@ class OPTIONS_CommandLineTests < CommandLineTestCase
           @cmd_line.apply({:day_count_max => [Conversion.for(:integer)]})
         end
       end
-      assert_match(/Error in the command line: --day-count-max's value/, output)
+      assert_match(/^Error in the command line: --day-count-max's value/, output)
     end
   end
 
@@ -166,7 +166,7 @@ class ARGLISTS_CommandLineTest < CommandLineTestCase
         end
       end
       
-      assert_match(/Error in the command line: No arguments are allowed./, output)
+      assert_match(/^Error in the command line: No arguments are allowed./, output)
     }
   end
   
@@ -209,7 +209,7 @@ class ARGLISTS_CommandLineTest < CommandLineTestCase
           @cmd_line.apply({:args => [Conversion.for({:length => 3})]})
         end
       end
-      assert_match(/Error in the command line:.*2 arguments given, 3 expected./, output)
+      assert_match(/^Error in the command line:.*2 arguments given, 3 expected./, output)
     }
   end
 
@@ -233,7 +233,7 @@ class ARGLISTS_CommandLineTest < CommandLineTestCase
           @cmd_line.apply({:args => [Conversion.for({:length => 3..6})]})
         end
       end
-      assert_match(/Error in the command line:.*2 arguments given, 3 to 6 expected./, output)
+      assert_match(/^Error in the command line:.*2 arguments given, 3 to 6 expected./, output)
     }
   end
   
@@ -258,13 +258,14 @@ class ARG_CommandLineTest < CommandLineTestCase
     }
   end
 
-  def test_missing_singleton_args_will_NOT_generate_length_errors
+  def test_singleton_args_are_incompatible_with_length_checks
     # Because the missing argument might be filled in by other chained sources.
-    with_command_args("") {
+    with_command_args("1") {
       @cmd_line.uses_arg(:arg)
       @cmd_line.fill
-      @cmd_line.apply({:arg => [Conversion.for(:length => 1)]})
-      # no error
+      assert_raises_with_matching_message(StandardError, "Don't specify the length of an argument list when it's not treated as an array.") {
+        @cmd_line.apply({:arg => [Conversion.for(:length => 1)]})
+      }
     }
   end
   
@@ -279,7 +280,7 @@ class ARG_CommandLineTest < CommandLineTestCase
           @cmd_line.fill
         end
       end
-      assert_match(/Error in the command line: .*2 arguments given, 1 expected/, output)
+      assert_match(/^Error in the command line: .*2 arguments given, 1 expected/, output)
     }
   end
 
@@ -310,7 +311,7 @@ class ARG_CommandLineTest < CommandLineTestCase
           @cmd_line.fill
         end
       end
-      assert_match(/Error in the command line:.*2 arguments given, 0 or 1 expected./, output)
+      assert_match(/^Error in the command line:.*2 arguments given, 0 or 1 expected./, output)
     }
   end
   
@@ -394,7 +395,7 @@ class ERROR_CommandLineTest < CommandLineTestCase
         end
       end
       
-      assert_match(/Error in the command line:.*missing argument.*doofus/, output)
+      assert_match(/^Error in the command line:.*missing argument.*doofus/, output)
     }
   end
 
@@ -414,7 +415,7 @@ class ERROR_CommandLineTest < CommandLineTestCase
 
       lines = output.split($/)
       # puts output
-      assert_match(/Error in the command line: /, lines[0])
+      assert_match(/^Error in the command line: /, lines[0])
       assert_equal("Usage: ruby prog [options] [isbn]", lines[1])
       assert_match(/This and further/, lines[2])
       assert_match(/\s*/, lines[3])
@@ -424,6 +425,7 @@ class ERROR_CommandLineTest < CommandLineTestCase
       assert_match(/--help.*Show this message/, lines.last)
     }
   end
+  
 end
 
 

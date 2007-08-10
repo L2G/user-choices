@@ -16,6 +16,9 @@ module UserChoices # :nodoc
       @arglist_handler = NoArguments.new(self)
     end
       
+    def source     # :nodoc: 
+      "the command line"
+    end
     
     # The _usage_lines_ will be used to produce the output from
     # --help (or on error).
@@ -25,25 +28,29 @@ module UserChoices # :nodoc
     end
     
     def fill
-      exit_upon_error("Error in the command line: ") do
+      exit_upon_error do
         remainder = @parser.parse(ARGV)
-        @arglist_handler.update_from_arglist(remainder)
+        @arglist_handler.fill(remainder)
       end
     end
     
-    
-    
-    def apply(choice_conversions)
+    def apply(all_choice_conversions)
+      generic_conversions = @arglist_handler.claim_conversions(all_choice_conversions)
+      
       exit_upon_error do
-        error_callbacks = {}
-        @arglist_handler.add_error_message_maker(error_callbacks)
-        super(choice_conversions, error_callbacks)
+        @arglist_handler.apply_claimed_conversions
+        super(generic_conversions)
       end
     end
 
-    def source     # :nodoc: 
-      "the command line"
+    def adjust(all_choices)
+      exit_upon_error do
+        @arglist_handler.adjust(all_choices)
+      end
     end
+
+
+
 
     def help    # :nodoc: 
       $stderr.puts @parser
@@ -102,45 +109,46 @@ module UserChoices # :nodoc
       end
     end
 
-    # The argument list choice probably does not need a name. 
-    # (Currently, the name is unused.) But I'll give it one, just 
-    # in case, and for debugging.
-    ARGLIST = "the argument list"
-    
     # Bundle up all non-option and non-switch arguments into an
     # array of strings indexed by _choice_. 
     def uses_arglist(choice)
-      external_names[choice] = ARGLIST
-      @arglist_handler = ArbitraryArglist.new(self, choice)
+      choice_requires_arglist_strategy(choice, ArbitraryArglist)
     end
 
     # The single argument required argument is turned into
     # a string indexed by _choice_. Any other case is an error.
     def uses_arg(choice)
-      external_names[choice] = ARGLIST
-      @arglist_handler = OneRequiredArg.new(self, choice)
+      choice_requires_arglist_strategy(choice, OneRequiredArg)
     end
 
     # If a single argument is present, it (as a string) is the value of
     # _choice_. If no argument is present, _choice_ has no value.
     # Any other case is an error. 
     def uses_optional_arg(choice)
-      external_names[choice] = ARGLIST
-      @arglist_handler = OneOptionalArg.new(self, choice)
+      choice_requires_arglist_strategy(choice, OneOptionalArg)
     end
     
-    def postprocessing_command_line_checks(all_choices, conversions)
-      @arglist_handler.adapt_to_global_constraints(all_choices, conversions)
+    def choice_requires_arglist_strategy(choice, strategy)
+      # The argument list choice probably does not need a name. 
+      # (Currently, the name is unused.) But I'll give it one, just 
+      # in case, and for debugging.
+      external_names[choice] = "the argument list"
+      @arglist_handler = strategy.new(self, choice)
     end
+    
 
-
-    def exit_upon_error(prefix = '')
+    def exit_upon_error
       begin
         yield
       rescue SystemExit
         raise
       rescue Exception => ex
-        $stderr.puts(prefix + ex.message)
+        message = if ex.message.starts_with?(error_prefix)
+                    ex.message
+                  else
+                    error_prefix + ex.message
+                  end
+        $stderr.puts(message)
         help
       end
     end

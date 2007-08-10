@@ -21,28 +21,27 @@ module UserChoices   # :nodoc
       super()
       @external_names = {}
     end
+
+    def source; subclass_responsibility; end
+
     
     def fill; subclass_responsibility; end
-    def source; subclass_responsibility; end
     
-    
-    def apply(choice_conversions, error_callbacks = {})
+    def apply(choice_conversions)
       each_conversion(choice_conversions) do | choice, conversion |
         next unless self.has_key?(choice)
         
         user_claims(conversion.suitable?(self[choice])) {
-          msg = if error_callbacks.has_key?(choice)
-                  error_callbacks[choice].call(choice, conversion)
-                else
-                  bad_look(choice, conversion)
-                end
-          error_prefix + msg
+          error_prefix + bad_look(choice, conversion)
         }
         
         self[choice] = conversion.convert(self[choice])
       end
     end
-    
+
+    def adjust(final_results)
+      # Do nothing
+    end
     
     def each_conversion(choice_conversion_hash)
       choice_conversion_hash.each do | choice, conversion_list | 

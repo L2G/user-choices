@@ -7,25 +7,30 @@ require 'user-choices/ruby-extensions'
 
 module UserChoices
   class ArglistStrategy
+    
+    attr_reader :choice
+    
     def initialize(value_holder, choice=nil)
       @value_holder = value_holder
       @choice = choice
     end
     
-    def update_from_arglist(arglist); subclass_responsibility; end
-    def adapt_to_global_constraints(all_choices, conversions)
+    def fill(arglist); subclass_responsibility; end
+    
+    def claim_conversions(conversions); 
+      @claimed_conversions = []
+      conversions
+    end
+    
+    def apply_claimed_conversions
+      # None claimed
+    end
+      
+    def adjust(all_choices)
       # By default, do nothing.
     end
 
-    
-    def add_error_message_maker(makers)
-      friendlier_length_error = lambda {| choice, conversion |
-        arglist_arity_error(@value_holder[choice].length, conversion.required_length)
-      }
-      makers[@choice] = friendlier_length_error if @choice
-    end
-    
-    
+    # public for testing.
     def arglist_arity_error(length, arglist_arity)
       plural = length==1 ? '' : 's'
       expected = case arglist_arity
@@ -43,35 +48,75 @@ module UserChoices
       "#{length} argument#{plural} given, #{expected} expected."
     end
     
+
+    protected
+    
+    def claim_length_check(conversions)
+      retval = conversions.dup
+      @length_check = retval[@choice].find { |c| c.does_length_check? }
+      if @length_check
+        retval[@choice] = retval[@choice].dup
+        retval[@choice].reject { |c| c.does_length_check? }
+      end
+      retval
+    end
+
+    
   end
   
   class NoArguments < ArglistStrategy      
-    def update_from_arglist(arglist)
+    def fill(arglist)
       user_claims(arglist.length == 0) do
         "No arguments are allowed."
       end
     end
+    
   end
   
   class ArbitraryArglist < ArglistStrategy
-    def update_from_arglist(arglist)
+    def fill(arglist)
       @value_holder[@choice] = arglist unless arglist.empty?
     end
     
-    def adapt_to_global_constraints(all_choices, conversions)
+    def claim_conversions(conversions)
+      claim_length_check(conversions)
+    end
+    
+    def apply_claimed_conversions
+      apply_length_check
+    end
+      
+    def adjust(all_choices)
       return if @value_holder[@choice]
       return if all_choices.has_key?(@choice)
       
       all_choices[@choice] = []
       @value_holder[@choice] = all_choices[@choice]
-      @value_holder.apply(@choice => conversions[@choice])
+      apply_length_check
     end
+
+
+
+    private
+
+    
+    def apply_length_check
+      return unless @length_check
+      return unless @value_holder[@choice]
+      
+      value = @value_holder[@choice]
+      user_claims(@length_check.suitable?(value)) {
+        arglist_arity_error(value.length, @length_check.required_length)
+      }
+    end
+    
+    
   end
   
   class NonListStrategy < ArglistStrategy
     def arity; subclass_responsibility; end
     
-    def update_from_arglist(arglist)
+    def fill(arglist)
       case arglist.length
       when 0: # This is not considered an error because another source
               # might fill in the value.
@@ -80,21 +125,27 @@ module UserChoices
       end
     end
     
-
+    def claim_conversions(conversions)
+      claim_length_check(conversions)
+      user_denies(@length_check) {
+        "Don't specify the length of an argument list when it's not treated as an array."
+      }
+      conversions
+    end
   end
     
   
   class OneRequiredArg < NonListStrategy
     def arity; 1; end
     
-    def adapt_to_global_constraints(all_choices, conversions)
-      return if @value_holder[@choice]
+    def adjust(all_choices)
       return if all_choices.has_key?(@choice)
 
-      @value_holder[@choice] = []
-      @value_holder.apply(@choice => [Conversion.for(:length => 1)])
+      user_claims(all_choices.has_key?(@choice)) {
+        arglist_arity_error(0, 1)
+      }
     end
-      
+    
   end
   
   class OneOptionalArg < NonListStrategy

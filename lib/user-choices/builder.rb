@@ -63,7 +63,7 @@ module UserChoices
       @sources.each { |s| s.fill }
       @sources.each { |s| s.apply(@conversions) }
       @sources.reverse.each { |s| retval.merge!(s) }
-      postprocessing_command_line_checks(retval) if @command_line_source
+      @sources.each { |s| s.adjust(retval) }
       retval
     end
     
@@ -82,11 +82,7 @@ module UserChoices
     end
     
     private
-    
        
-    def postprocessing_command_line_checks(retval)
-      @command_line_source.postprocessing_command_line_checks(retval, @conversions)
-    end
   end
 
 end

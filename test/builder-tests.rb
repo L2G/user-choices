@@ -104,7 +104,7 @@ class TestDefaultsAndTypes < Test::Unit::TestCase
           b.build
         end
       end
-      assert_match(/Error in the command line: 4 arguments given, 2 or 3 expected/, output)
+      assert_match(/^Error in the command line: 4 arguments given, 2 or 3 expected/, output)
     }
   end
   
@@ -121,7 +121,7 @@ class TestDefaultsAndTypes < Test::Unit::TestCase
           b.build
         end
       end
-      assert_match(/Error in the command line: 0 arguments given, 1 expected/, output)
+      assert_match(/^Error in the command line: 0 arguments given, 1 expected/, output)
     }
   end
   
@@ -138,7 +138,7 @@ class TestDefaultsAndTypes < Test::Unit::TestCase
           b.build
         end
       end
-      assert_match(/Error in the command line: 2 arguments given, 1 expected/, output)
+      assert_match(/^Error in the command line: 2 arguments given, 1 expected/, output)
     }
   end
   
@@ -155,7 +155,7 @@ class TestDefaultsAndTypes < Test::Unit::TestCase
           b.build
         end
       end
-      assert_match(/Error in the command line: 2 arguments given, 0 or 1 expected/, output)
+      assert_match(/^Error in the command line: 2 arguments given, 0 or 1 expected/, output)
     }
   end
 end
@@ -209,7 +209,7 @@ class TestChainingOfSources < Test::Unit::TestCase
   def test_checking_is_done_for_all_sources
     with_command_args("--command-option perfectly-fine") {
       assert_raises_with_matching_message(StandardError, 
-                                          /Error in the default values/) {
+                                          /^Error in the default values/) {
         b = ChoicesBuilder.new
         b.add_source(CommandLineSource, :usage, "blah")
         b.add_choice(:command_option) { | command_line |
@@ -482,6 +482,60 @@ class TestCommandLineConstruction < Test::Unit::TestCase
       }
       
     end
+    
+    
+    def test_required_arg_with_type_conversion
+      with_command_args("2") {
+        b = ChoicesBuilder.new
+        b.add_source(CommandLineSource, :usage, "blah")
+        b.add_choice(:e, :type => :integer) { |command_line | 
+          command_line.uses_arg
+        }
+        choices = b.build
+        assert_equal(2, choices[:e])
+      }
+    end
+
+    def test_required_arg_conversion_prints_right_message
+      with_command_args("b") {
+        b = ChoicesBuilder.new
+        b.add_source(CommandLineSource, :usage, "blah")
+        b.add_choice(:e, :type => :integer) { |command_line | 
+          command_line.uses_arg
+        }
+        output = capturing_stderr do
+          assert_wants_to_exit do    
+            b.build
+          end
+        end
+        assert_no_match(/^Error in the command line: Error in the command line: /, output)
+      }
+    end
+
+    def test_optional_arg_with_type_conversion
+      with_command_args('2') {
+        b = ChoicesBuilder.new
+        b.add_source(CommandLineSource, :usage, "blah")
+        b.add_choice(:e, :type => :integer) { |command_line | 
+          command_line.uses_optional_arg
+        }
+        choices = b.build
+        assert_equal(2, choices[:e])
+      }
+    end
+
+    def test_missing_optional_arg_with_type_conversion_is_OK
+      # The type check applies only if the value is given.
+      with_command_args('') {
+        b = ChoicesBuilder.new
+        b.add_source(CommandLineSource, :usage, "blah")
+        b.add_choice(:e, :type => :integer) { |command_line | 
+          command_line.uses_optional_arg
+        }
+        assert_equal(nil, b.build[:e])
+      }
+    end
+
   end
 
 

@@ -21,7 +21,7 @@ module UserChoices
     
     def self.for(conversion_tag)
       subclass = @@subclasses.find { |sc| sc.described_by?(conversion_tag) }
-      user_claims(subclass) { "#{conversion_tag} doesn't describe any ruby object." }
+      user_claims(subclass) { "#{conversion_tag} doesn't describe any Conversion object." }
       subclass.new(conversion_tag)
     end
     
@@ -34,6 +34,7 @@ module UserChoices
     def description; subclass_responsibility; end
     
     def convert(value); value; end  # Some conversions are just for error-checking
+    def does_length_check?; false; end
   end
   
   class ConversionToInteger < Conversion
@@ -108,6 +109,8 @@ module UserChoices
     def suitable?(actual)
       actual.respond_to?(:length) && yield
     end
+    
+    def does_length_check?; true; end
     
   end
   
