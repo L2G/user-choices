@@ -1,6 +1,6 @@
 require "user-choices/conversions"
-require 'user-choices/choices'
-require 'user-choices/command-line-choices'
+require 'user-choices/sources'
+require 'user-choices/command-line-source'
 require 'user-choices/command'
 require 'user-choices/builder'
 require 'user-choices/version'
