@@ -14,7 +14,6 @@ module UserChoices
       @defaults = {}
       @conversions = {}
       @sources = []
-      @command_line_blocks = []
     end
     
     # Add the choice named _choice_, a symbol. _args_ is a keyword
@@ -93,22 +92,27 @@ module UserChoices
     # take effect. 
     def transfer_command_line_info
       return unless @command_line_source
-      return unless @command_line_source.accepts_argument_list?
+      return unless @command_line_source.accepts_argument_list?  # TODO: needed?
       choice = @command_line_source.arglist_choice_name
       @sources.last[choice] = [] unless @sources.last.has_key?(choice)
     end
        
     # If, after all is said and done, a required command-line arg is not
-    # given, blame it on the command line (because it has the best error-reporting). 
+    # given, blame it on the command line (because it has the best error reporting). 
     def postprocessing_command_line_checks(retval)
-      return unless @command_line_source && @command_line_source.single_required_arg?
-      arg_choice = @command_line_source.arglist_choice_name
+      return unless @command_line_source
+      case 
+      when @command_line_source.single_required_arg?
+        arg_choice = @command_line_source.arglist_choice_name
+        return if retval[arg_choice]
+        @command_line_source[arg_choice] = []
+        @command_line_source.apply(arg_choice => [Conversion.for(:length => 1)])
       
-      @command_line_source.exit_upon_error("Error in the command line: ") {
-        user_claims(retval.has_key?(arg_choice)) {
-          "0 arguments given, 1 expected."
-        }
-      }
+      when @command_line_source.accepts_argument_list?
+        arg_choice = @command_line_source.arglist_choice_name
+        @command_line_source[arg_choice] = retval[arg_choice]
+        @command_line_source.apply(arg_choice => @conversions[arg_choice])
+      end
     end
   
 

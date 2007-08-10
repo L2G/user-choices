@@ -371,6 +371,22 @@ class TestInteractionOfArglistsWithOtherSources < Test::Unit::TestCase
       assert_equal(['1', '2'], b.build[:names])
     }
   end
+  
+  def test_an_empty_arglist_is_caught_by_the_length_check
+    with_command_args("") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineChoices, :usage, 'blah')
+      b.add_choice(:names, :length => 2) { |command_line| 
+        command_line.uses_arglist
+      }
+      output = capturing_stderr do
+        assert_wants_to_exit do
+          b.build
+        end
+      end
+      assert_match(/command line: 0 arguments given, 2 expected/, output)
+    }
+  end
 
 
   def test_choices_from_earlier_defaults_prevent_failing_arglist_arity_check

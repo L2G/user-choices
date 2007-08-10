@@ -170,6 +170,15 @@ class ARGLISTS_CommandLineTest < CommandLineTestCase
     }
   end
   
+  def test_empty_arglists_are_OK_if_arglist_not_described
+    with_command_args("") {
+      output = capturing_stderr do
+        @cmd_line.fill
+      end
+      assert_equal("", output)  # No error message
+    }
+  end
+  
   def test_arglist_after_options_can_turned_into_an_option
     with_command_args("--unused unused arg1 arg2") {
       @cmd_line.uses_option(:unused, "--unused VALUE")  # just for grins
@@ -239,7 +248,7 @@ class ARGLISTS_CommandLineTest < CommandLineTestCase
     @cmd_line.uses_arglist(:fred)
     assert_equal("the argument list", @cmd_line.external_names[:fred])
   end
-  
+
 end
 
 class ARG_CommandLineTest < CommandLineTestCase
@@ -330,7 +339,7 @@ class ARG_CommandLineTest < CommandLineTestCase
     @cmd_line.uses_optional_arg(:fred)
     assert_equal("the argument list", @cmd_line.external_names[:fred])
   end
-
+  
 end
 
                     ### Option-Handling Style ###

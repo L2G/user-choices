@@ -21,6 +21,9 @@ end
 module UserChoices   # :nodoc
 
 
+  # TODO: Right now, elements that are named in a source, but not in an 
+  # add_choice() call, nevertheless appear in the final array. Is that good? 
+  # Bad? Irrelevant?
   class ExternallyFilledHash < Hash # :nodoc:
     
     attr_reader :external_names
