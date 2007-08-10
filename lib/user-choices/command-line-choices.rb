@@ -7,14 +7,113 @@ module UserChoices # :nodoc
   # Treat the command line (including the arguments) as a source
   # of choices.
   class CommandLineChoices < ExternallyFilledHash
+    class ArglistStrategy
+      def initialize(command_line, choice=nil)
+        @command_line = command_line
+        @choice = choice
+        @value = nil
+      end
+      
+      def update(hash, value)
+        @value = value
+        hash[@choice] = value
+      end
+      
+      def arglist_arity_error(length, arglist_arity)
+        plural = length==1 ? '' : 's'
+        expected = case arglist_arity
+          when Integer
+            arglist_arity.to_s
+          when Range
+            if arglist_arity.end == arglist_arity.begin.succ
+              "#{arglist_arity.begin} or #{arglist_arity.end}"
+            else
+              arglist_arity.in_words
+            end
+          else
+            arglist_arity.inspect
+          end
+        "#{length} argument#{plural} given, #{expected} expected."
+      end
+      
+      def add_error_message_maker(makers)
+        cmd = @command_line
+        friendlier_length_error = lambda {| choice, conversion |
+          arglist_arity_error(cmd[choice].length, conversion.required_length)
+        }
+        makers[@choice] = friendlier_length_error if @choice
+      end
+      
+      
+      def handle_first_pass(arglist); subclass_responsibility; end
+      def handle_second_pass(all_choices, conversions)
+      end
+      
+    end
+    
+    class NoArguments < ArglistStrategy      
+      def handle_first_pass(arglist)
+        user_claims(arglist.length == 0) do
+          "No arguments are allowed."
+        end
+      end
+    end
+    
+    class ArbitraryArglist < ArglistStrategy
+      def handle_first_pass(arglist)
+        update(@command_line, with = arglist) unless arglist.empty?
+      end
+      
+      def handle_second_pass(all_choices, conversions)
+        return if @command_line[@choice]
+        return if all_choices.has_key?(@choice)
+        
+        all_choices[@choice] = []
+        @command_line[@choice] = all_choices[@choice]
+        @command_line.apply(@choice => conversions[@choice])
+      end
+    end
+    
+    class NonListStrategy < ArglistStrategy
+      def arity; subclass_responsibility; end
+      
+      def handle_first_pass(arglist)
+        case arglist.length
+        when 0: # This is not considered an error because another source
+                # might fill in the value.
+        when 1: update(@command_line, with = arglist[0])
+        else user_is_bewildered(arglist_arity_error(arglist.length, self.arity))
+        end
+      end
+      
+
+    end
+      
+    
+    class OneRequiredArg < NonListStrategy
+      def arity; 1; end
+      
+      def handle_second_pass(all_choices, conversions)
+        return if @command_line[@choice]
+        return if all_choices.has_key?(@choice)
+
+        @command_line[@choice] = []
+        @command_line.apply(@choice => [Conversion.for(:length => 1)])
+      end
+        
+    end
+    
+    class OneOptionalArg < NonListStrategy
+      def arity; 0..1; end
+    end
+
+
+
+    
     def initialize(*args)
       super(*args)
       @parser = OptionParser.new
-      @arglist_handler = lambda { | args |
-        user_claims(args.length == 0) do
-          "No arguments are allowed."
-        end
-      }
+      @arglist_handler = NoArguments.new(self)
     end
       
     
@@ -28,27 +127,16 @@ module UserChoices # :nodoc
     def fill
       exit_upon_error("Error in the command line: ") do
         remainder = @parser.parse(ARGV)
-        @arglist_handler.call(remainder)
+        @arglist_handler.handle_first_pass(remainder)
       end
     end
     
     
     
     def apply(choice_conversions)
-      friendlier_length_error = lambda {| choice, conversion |
-        if conversion.description.include?("length")
-          arglist_arity_error(self[choice].length, conversion.required_length)
-        else
-          bad_look(choice, conversion)
-        end
-      }
-      
-      error_callbacks = {}
-      if @arglist_choice_name
-        error_callbacks[@arglist_choice_name] = friendlier_length_error
-      end
-
       exit_upon_error do
+        error_callbacks = {}
+        @arglist_handler.add_error_message_maker(error_callbacks)
         super(choice_conversions, error_callbacks)
       end
     end
@@ -114,73 +202,37 @@ module UserChoices # :nodoc
       end
     end
 
-
+    # The argument list choice probably does not need a name. 
+    # (Currently, the name is unused.) But I'll give it one, just 
+    # in case, and for debugging.
+    ARGLIST = "the argument list"
+    
     # Bundle up all non-option and non-switch arguments into an
     # array of strings indexed by _choice_. 
     def uses_arglist(choice)
-      external_names[choice] = "the argument list"
-      @arglist_handler = lambda { | arglist |
-        self[choice] = arglist unless arglist.empty?
-      }
-      @accepts_argument_list = true
-      @arglist_choice_name = choice
+      external_names[choice] = ARGLIST
+      @arglist_handler = ArbitraryArglist.new(self, choice)
     end
 
     # The single argument required argument is turned into
     # a string indexed by _choice_. Any other case is an error.
     def uses_arg(choice)
-      arg_helper(choice, 1)
-      @single_required_arg = true
-      @arglist_choice_name = choice
-    end
-
-    def arg_helper(choice, arity)
-      external_names[choice] = "the argument list"
-      @arglist_handler = lambda { | arglist |
-        case arglist.length
-        when 0: # This is not considered an error because another source
-                # might fill in the value.
-        when 1: self[choice] = arglist[0]
-        else user_is_bewildered(arglist_arity_error(arglist.length, arity))
-        end
-      }
+      external_names[choice] = ARGLIST
+      @arglist_handler = OneRequiredArg.new(self, choice)
     end
 
     # If a single argument is present, it (as a string) is the value of
     # _choice_. If no argument is present, _choice_ has no value.
     # Any other case is an error. 
     def uses_optional_arg(choice)
-      arg_helper(choice, 0..1)
+      external_names[choice] = ARGLIST
+      @arglist_handler = OneOptionalArg.new(self, choice)
     end
     
-    def accepts_argument_list?
-      @accepts_argument_list
-    end
-    
-    def single_required_arg?
-      @single_required_arg
-    end
-    
-    def arglist_choice_name
-      @arglist_choice_name
+    def postprocessing_command_line_checks(all_choices, conversions)
+      @arglist_handler.handle_second_pass(all_choices, conversions)
     end
 
-    def arglist_arity_error(length, arglist_arity)
-      plural = length==1 ? '' : 's'
-      expected = case arglist_arity
-        when Integer
-          arglist_arity.to_s
-        when Range
-          if arglist_arity.end == arglist_arity.begin.succ
-            "#{arglist_arity.begin} or #{arglist_arity.end}"
-          else
-            arglist_arity.in_words
-          end
-        else
-          arglist_arity.inspect
-        end
-      "#{length} argument#{plural} given, #{expected} expected."
-    end
 
     def exit_upon_error(prefix = '')
       begin

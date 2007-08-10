@@ -60,9 +60,8 @@ module UserChoices
       @sources << DefaultChoices.new.use_hash(@defaults)
       @sources.each { |s| s.fill }
       @sources.each { |s| s.apply(@conversions) }
-      transfer_command_line_info
       @sources.reverse.each { |s| retval.merge!(s) }
-      postprocessing_command_line_checks(retval)
+      postprocessing_command_line_checks(retval) if @command_line_source
       retval
     end
     
@@ -82,40 +81,10 @@ module UserChoices
     
     private
     
-    # Suppose a command line argument list is to be choice :names. Suppose
-    # that the environment contains a variable myprog_names that should be 
-    # used if no command line arguments are given. But command line arguments
-    # are *always* given - not given means they're the empty list. So this 
-    # method makes the default for :names the empty list (unless a default
-    # has been explicitly given). If the command line sees an empty list, 
-    # it just doesn't set the variable, allowing lower-priority values to 
-    # take effect. 
-    def transfer_command_line_info
-      return unless @command_line_source
-      return unless @command_line_source.accepts_argument_list?  # TODO: needed?
-      choice = @command_line_source.arglist_choice_name
-      @sources.last[choice] = [] unless @sources.last.has_key?(choice)
-    end
        
-    # If, after all is said and done, a required command-line arg is not
-    # given, blame it on the command line (because it has the best error reporting). 
     def postprocessing_command_line_checks(retval)
-      return unless @command_line_source
-      case 
-      when @command_line_source.single_required_arg?
-        arg_choice = @command_line_source.arglist_choice_name
-        return if retval[arg_choice]
-        @command_line_source[arg_choice] = []
-        @command_line_source.apply(arg_choice => [Conversion.for(:length => 1)])
-      
-      when @command_line_source.accepts_argument_list?
-        arg_choice = @command_line_source.arglist_choice_name
-        @command_line_source[arg_choice] = retval[arg_choice]
-        @command_line_source.apply(arg_choice => @conversions[arg_choice])
-      end
+      @command_line_source.postprocessing_command_line_checks(retval, @conversions)
     end
-  
-
   end
 
 end

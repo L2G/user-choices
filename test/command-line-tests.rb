@@ -237,13 +237,6 @@ class ARGLISTS_CommandLineTest < CommandLineTestCase
     }
   end
   
-  def test_command_lines_know_when_they_have_been_told_what_to_do_about_an_arglist
-    assert_false(@cmd_line.accepts_argument_list?)
-    @cmd_line.uses_arglist(:args)
-    assert_true(@cmd_line.accepts_argument_list?)
-    assert_equal(:args, @cmd_line.arglist_choice_name)
-  end
-  
   def test_arglist_external_name_is_friendly
     @cmd_line.uses_arglist(:fred)
     assert_equal("the argument list", @cmd_line.external_names[:fred])
@@ -273,14 +266,6 @@ class ARG_CommandLineTest < CommandLineTestCase
       @cmd_line.apply({:arg => [Conversion.for(:length => 1)]})
       # no error
     }
-  end
-  
-  def test_command_lines_know_when_have_a_required_singleton
-    # So someone else can check that some value has been given somewhere.
-    assert_false(@cmd_line.single_required_arg?)
-    @cmd_line.uses_arg(:arg)
-    assert_true(@cmd_line.single_required_arg?)
-    assert_equal(:arg, @cmd_line.arglist_choice_name)
   end
   
   
@@ -447,25 +432,26 @@ class ERROR_FORMATTING_CommandLineTest < CommandLineTestCase
   include UserChoices
 
   def test_range_violation_descriptions
+    @arglist_handler = CommandLineChoices::ArglistStrategy.new('unimportant')
     # Good about plurals.
     assert_match(/2 arguments given, 3 expected/,
-                 @cmd_line.arglist_arity_error(2, 3))
+                 @arglist_handler.arglist_arity_error(2, 3))
 
     assert_match(/1 argument given, 3 expected/,
-                 @cmd_line.arglist_arity_error(1, 3))
+                 @arglist_handler.arglist_arity_error(1, 3))
 
     assert_match(/0 arguments given, 1 expected/,
-                 @cmd_line.arglist_arity_error(0, 1))
+                 @arglist_handler.arglist_arity_error(0, 1))
 
     # Handle both types of ranges.
     assert_match(/2 arguments given, 3 to 5 expected/, 
-                 @cmd_line.arglist_arity_error(2, 3..5))
+                 @arglist_handler.arglist_arity_error(2, 3..5))
     assert_match(/1 argument given, 3 to 5 expected/, 
-                 @cmd_line.arglist_arity_error(1, 3...6))
+                 @arglist_handler.arglist_arity_error(1, 3...6))
                  
     # Use 'or' if there are only two alternatives.
     assert_match(/2 arguments given, 3 or 4 expected/, 
-                 @cmd_line.arglist_arity_error(2, 3..4))
+                 @arglist_handler.arglist_arity_error(2, 3..4))
     
   end
 end
