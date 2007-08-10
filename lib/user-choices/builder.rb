@@ -2,6 +2,8 @@ require 's4t-utils'
 include S4tUtils
 require 'enumerator'
 
+require 'user-choices/conversions'
+require 'user-choices/sources'
 
 module UserChoices
 

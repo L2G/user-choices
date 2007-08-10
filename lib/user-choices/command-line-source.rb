@@ -1,5 +1,7 @@
 require 'optparse'
 require 's4t-utils'
+require 'user-choices/sources.rb'
+require 'user-choices/arglist-strategies'
 include S4tUtils
 
 module UserChoices # :nodoc
@@ -7,108 +9,6 @@ module UserChoices # :nodoc
   # Treat the command line (including the arguments) as a source
   # of choices.
   class CommandLineSource < ExternallyFilledHash
-    class ArglistStrategy
-      def initialize(command_line, choice=nil)
-        @command_line = command_line
-        @choice = choice
-        @value = nil
-      end
-      
-      def update(hash, value)
-        @value = value
-        hash[@choice] = value
-      end
-      
-      def arglist_arity_error(length, arglist_arity)
-        plural = length==1 ? '' : 's'
-        expected = case arglist_arity
-          when Integer
-            arglist_arity.to_s
-          when Range
-            if arglist_arity.end == arglist_arity.begin.succ
-              "#{arglist_arity.begin} or #{arglist_arity.end}"
-            else
-              arglist_arity.in_words
-            end
-          else
-            arglist_arity.inspect
-          end
-        "#{length} argument#{plural} given, #{expected} expected."
-      end
-      
-      def add_error_message_maker(makers)
-        cmd = @command_line
-        friendlier_length_error = lambda {| choice, conversion |
-          arglist_arity_error(cmd[choice].length, conversion.required_length)
-        }
-        makers[@choice] = friendlier_length_error if @choice
-      end
-      
-      
-      def handle_first_pass(arglist); subclass_responsibility; end
-      def handle_second_pass(all_choices, conversions)
-      end
-      
-    end
-    
-    class NoArguments < ArglistStrategy      
-      def handle_first_pass(arglist)
-        user_claims(arglist.length == 0) do
-          "No arguments are allowed."
-        end
-      end
-    end
-    
-    class ArbitraryArglist < ArglistStrategy
-      def handle_first_pass(arglist)
-        update(@command_line, with = arglist) unless arglist.empty?
-      end
-      
-      def handle_second_pass(all_choices, conversions)
-        return if @command_line[@choice]
-        return if all_choices.has_key?(@choice)
-        
-        all_choices[@choice] = []
-        @command_line[@choice] = all_choices[@choice]
-        @command_line.apply(@choice => conversions[@choice])
-      end
-    end
-    
-    class NonListStrategy < ArglistStrategy
-      def arity; subclass_responsibility; end
-      
-      def handle_first_pass(arglist)
-        case arglist.length
-        when 0: # This is not considered an error because another source
-                # might fill in the value.
-        when 1: update(@command_line, with = arglist[0])
-        else user_is_bewildered(arglist_arity_error(arglist.length, self.arity))
-        end
-      end
-      
-
-    end
-      
-    
-    class OneRequiredArg < NonListStrategy
-      def arity; 1; end
-      
-      def handle_second_pass(all_choices, conversions)
-        return if @command_line[@choice]
-        return if all_choices.has_key?(@choice)
-
-        @command_line[@choice] = []
-        @command_line.apply(@choice => [Conversion.for(:length => 1)])
-      end
-        
-    end
-    
-    class OneOptionalArg < NonListStrategy
-      def arity; 0..1; end
-    end
-
-
-
     
     def initialize(*args)
       super(*args)
@@ -127,7 +27,7 @@ module UserChoices # :nodoc
     def fill
       exit_upon_error("Error in the command line: ") do
         remainder = @parser.parse(ARGV)
-        @arglist_handler.handle_first_pass(remainder)
+        @arglist_handler.update_from_arglist(remainder)
       end
     end
     
@@ -230,7 +130,7 @@ module UserChoices # :nodoc
     end
     
     def postprocessing_command_line_checks(all_choices, conversions)
-      @arglist_handler.handle_second_pass(all_choices, conversions)
+      @arglist_handler.adapt_to_global_constraints(all_choices, conversions)
     end
 
 

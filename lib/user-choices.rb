@@ -1,8 +1,10 @@
-require "user-choices/conversions"
-require 'user-choices/sources'
-require 'user-choices/command-line-source'
-require 'user-choices/command'
+require 'user-choices/arglist-strategies'
 require 'user-choices/builder'
+require 'user-choices/command'
+require 'user-choices/command-line-source'
+require "user-choices/conversions"
+require "user-choices/ruby-extensions"
+require 'user-choices/sources'
 require 'user-choices/version'
 
 =begin rdoc

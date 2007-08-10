@@ -3,19 +3,8 @@ require 'yaml'
 require 's4t-utils'
 include S4tUtils
 
-class Range # :nodoc:
-  def in_words
-    last_element = self.last
-    last_element -= 1 if exclude_end?
-    "#{self.first} to #{last_element}"
-  end
-end
-
-class String # :nodoc:
-  def to_inputable_sym
-    gsub(/-/, '_').to_sym
-  end
-end
+require 'user-choices/ruby-extensions'
+require 'user-choices/conversions'
 
 
 module UserChoices   # :nodoc
