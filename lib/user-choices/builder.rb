@@ -29,7 +29,7 @@ module UserChoices
     #   will be an array of strings. For example, "--value a,b,c" will
     #   produce ['a', 'b', 'c'].
     # 
-    # The _block_ is passed a CommandLineChoices object. It's expected
+    # The _block_ is passed a CommandLineSource object. It's expected
     # to describe the command line.
     def add_choice(choice, args={}, &block)
       # TODO: does the has_key? actually make a difference?
@@ -43,21 +43,21 @@ module UserChoices
     end
 
     # This adds a source of choices. The _source_ is a class like
-    # CommandLineChoices. The _factory_method_ is a class method that's
+    # CommandLineSource. The _factory_method_ is a class method that's
     # called to create an instance of the class. The _args_ are passed
     # to the _factory_method_. 
     def add_source(source_class, *messages_and_args)
       source = source_class.new
       message_sends(messages_and_args).each { | send_me | source.send(*send_me) }
       @sources << source
-      @command_line_source = source if source_class == CommandLineChoices
+      @command_line_source = source if source_class == CommandLineSource
     end
 
     # Once sources and choices have been described, this builds and
     # returns a hash-like object indexed by the choices.
     def build
       retval = {}
-      @sources << DefaultChoices.new.use_hash(@defaults)
+      @sources << DefaultSource.new.use_hash(@defaults)
       @sources.each { |s| s.fill }
       @sources.each { |s| s.apply(@conversions) }
       @sources.reverse.each { |s| retval.merge!(s) }

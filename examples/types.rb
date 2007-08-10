@@ -13,7 +13,7 @@ include UserChoices
 class TypesExample < Command
 
   def add_sources(builder)
-    builder.add_source(CommandLineChoices, :usage,
+    builder.add_source(CommandLineSource, :usage,
                        "Usage: ruby #{$0} [options] arg")
   end
 

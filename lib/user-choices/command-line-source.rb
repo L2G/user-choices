@@ -6,7 +6,7 @@ module UserChoices # :nodoc
 
   # Treat the command line (including the arguments) as a source
   # of choices.
-  class CommandLineChoices < ExternallyFilledHash
+  class CommandLineSource < ExternallyFilledHash
     class ArglistStrategy
       def initialize(command_line, choice=nil)
         @command_line = command_line
@@ -269,7 +269,7 @@ module UserChoices # :nodoc
   #
   # Ordinarily, that's permuted so that --odd-file-name is expected to
   # be an option or switch, not an argument. One way to make
-  # CommandLineChoices parsing treat it as an argument is to use a -- to
+  # CommandLineSource parsing treat it as an argument is to use a -- to
   # signal the end of option parsing:
   #
   # ruby copy.rb -- file1 --odd-file-name
@@ -283,7 +283,7 @@ module UserChoices # :nodoc
   # those rules, the first word on the command line that does not begin with
   # a dash marks the end of all options. In that case, the first command line
   # above would parse into two arguments and no options.
-  class PosixCommandLineChoices < CommandLineChoices
+  class PosixCommandLineSource < CommandLineSource
     def fill
       begin
         already_set = ENV.include?('POSIXLY_CORRECT')

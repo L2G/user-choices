@@ -11,7 +11,7 @@ class CommandLineTestCase < Test::Unit::TestCase
   include UserChoices
   
   def setup
-    @cmd_line = CommandLineChoices.new
+    @cmd_line = CommandLineSource.new
   end
 
   def default_test
@@ -341,7 +341,7 @@ class OPTION_STYLE_CommandLineTest < CommandLineTestCase
 
   def test_default_style_is_permutation
     with_command_args('3 --switch 5') {
-      define(CommandLineChoices)
+      define(CommandLineSource)
       assert_equal('true', @cmd_line[:switch])
       assert_equal(['3', '5'], @cmd_line[:args])
     }
@@ -349,7 +349,7 @@ class OPTION_STYLE_CommandLineTest < CommandLineTestCase
 
   def test_subclass_allows_all_options_before_arguments
     with_command_args('3 --switch 5') { 
-      define(PosixCommandLineChoices)
+      define(PosixCommandLineSource)
       assert_equal(nil, @cmd_line[:switch])
       assert_equal(['3', '--switch', '5'], @cmd_line[:args])
     }
@@ -358,7 +358,7 @@ class OPTION_STYLE_CommandLineTest < CommandLineTestCase
   def test_choosing_posix_parsing_does_not_override_environment_variable
     with_environment_vars('POSIXLY_CORRECT' => 'hello') do
       with_command_args('3 --switch 5') { 
-        define(PosixCommandLineChoices)
+        define(PosixCommandLineSource)
         assert_equal('hello', ENV['POSIXLY_CORRECT'])
       }
     end
@@ -432,7 +432,7 @@ class ERROR_FORMATTING_CommandLineTest < CommandLineTestCase
   include UserChoices
 
   def test_range_violation_descriptions
-    @arglist_handler = CommandLineChoices::ArglistStrategy.new('unimportant')
+    @arglist_handler = CommandLineSource::ArglistStrategy.new('unimportant')
     # Good about plurals.
     assert_match(/2 arguments given, 3 expected/,
                  @arglist_handler.arglist_arity_error(2, 3))

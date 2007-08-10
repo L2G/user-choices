@@ -49,19 +49,19 @@ within the framework of a Command object:
 
 Sources are described by ChoicesBuilder#add_source.
 
-EnvironmentChoices describes the use of environment variables as sources. The following says that all environment variables beginning with "amazon_" are choices about this program.
+EnvironmentSource describes the use of environment variables as sources. The following says that all environment variables beginning with "amazon_" are choices about this program.
 
-    builder.add_source(EnvironmentChoices, :with_prefix, "amazon_")
+    builder.add_source(EnvironmentSource, :with_prefix, "amazon_")
 
-XmlConfigFileChoices points to a configuration file with choices.
+XmlConfigFileSource points to a configuration file with choices.
 
-    builder.add_source(XmlConfigFileChoices, :from_file, "ms-config.xml")
+    builder.add_source(XmlConfigFileSource, :from_file, "ms-config.xml")
 
-CommandLineChoices uses the command line options and
+CommandLineSource uses the command line options and
 arguments as a source of choices. The following gives the usage line
 for the script:
 
-    builder.add_source(CommandLineChoices, :usage,
+    builder.add_source(CommandLineSource, :usage,
                        "Usage ruby #{$0} [options] names...")
     
 = Describing choices
@@ -89,7 +89,7 @@ The second gives a default value and a type. The type is used to check the value
 = Command line options
 
 ChoicesBuilder#add_choice passes a
-CommandLineChoices object to a block. That can be used to
+CommandLineSource object to a block. That can be used to
 describe the command line. The syntax is the same as OptionParser.
 
 In the following, <tt>ordinary_choice</tt> can be specified with either the <tt>-o</tt> or <tt>--ordinary-choice</tt> options. The strings also appear in help messages (automatically produced from <tt>ruby script --help</tt>).

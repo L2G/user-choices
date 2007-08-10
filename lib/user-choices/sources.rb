@@ -84,7 +84,7 @@ module UserChoices   # :nodoc
 
   end
 
-  class DefaultChoices < ExternallyFilledHash   # :nodoc:
+  class DefaultSource < ExternallyFilledHash   # :nodoc:
     
     def use_hash(defaults)
       @defaults = defaults
@@ -107,11 +107,12 @@ module UserChoices   # :nodoc
       }
     end
   end
+  DefaultChoices = DefaultSource   # Backward compatibility
 
 
   
   # Describe the environment as a source of choices. 
-  class EnvironmentChoices < ExternallyFilledHash
+  class EnvironmentSource < ExternallyFilledHash
     def fill    # :nodoc:
       @external_names.each { | key, env_var |
         self[key] = ENV[env_var] if ENV.has_key?(env_var)
@@ -145,7 +146,7 @@ module UserChoices   # :nodoc
     # environment variables have some prefix (see with_prefix) but you also want to use
     # $HOME, you need a way to do that. You can satisfy both desires with 
     #
-    #      EnvironmentChoices.new.with_prefix("my_").mapping(:home => "HOME")
+    #      EnvironmentSource.new.with_prefix("my_").mapping(:home => "HOME")
   
     def mapping(map)
       @external_names.merge!(map)
@@ -157,8 +158,10 @@ module UserChoices   # :nodoc
       "the environment"
     end
   end
+  EnvironmentChoices = EnvironmentSource   # Backward compatibility
   
-  class FileChoices < ExternallyFilledHash # :nodoc: 
+  
+  class FileSource < ExternallyFilledHash # :nodoc: 
 
     def from_file(filename)
       @path = File.join(S4tUtils.find_home, filename)
@@ -208,7 +211,7 @@ module UserChoices   # :nodoc
   # single elements like <home>Mars</home> are read as the value
   # <tt>"Mars"</tt>, whereas <home>Mars</home><home>Venus</home> is
   # read as <tt>["Mars", "Venus"]</tt>.
-  class XmlConfigFileChoices < FileChoices
+  class XmlConfigFileSource < FileSource
 
     # Treat _filename_ as the configuration file. _filename_ is expected
     # to be in the home directory. The home directory is found in the
@@ -228,6 +231,8 @@ module UserChoices   # :nodoc
     end
       
   end
+  XmlConfigFileChoices = XmlConfigFileSource   # Backward compatibility
+  
   
   
   
@@ -239,7 +244,7 @@ module UserChoices   # :nodoc
   #    irb> require 'yaml'
   #    irb> YAML.load_file('config.yaml')
   #    
-  class YamlConfigFileChoices < FileChoices
+  class YamlConfigFileSource < FileSource
     # Treat _filename_ as the configuration file. _filename_ is expected
     # to be in the home directory. The home directory is found in the
     # same way Rubygems finds it. 

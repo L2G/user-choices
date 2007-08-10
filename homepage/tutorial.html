@@ -150,17 +150,17 @@ if $0 == __FILE__ <br />
 	<blockquote><table bgcolor="white" border="0"><tr><td>
 	<code>
 	&nbsp;&nbsp;<font style="color: #002FBD;">def</font> <font style="color: #600080;">add_sources</font>(builder) <br />
-	&nbsp;&nbsp;&nbsp;&nbsp;builder.add_source(CommandLineChoices, <font style="color: #800020;">:usage</font>, <br />
+	&nbsp;&nbsp;&nbsp;&nbsp;builder.add_source(CommandLineSource, <font style="color: #800020;">:usage</font>, <br />
 	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Usage ruby #{$0} [options]")<br />
-	&nbsp;&nbsp;&nbsp;&nbsp;builder.add_source(EnvironmentChoices, <font style="color: #800020;">:with_prefix</font>, "myprog_") <br />
-	&nbsp;&nbsp;&nbsp;&nbsp;builder.add_source(YamlConfigFileChoices, <font style="color: #800020;">:from_file</font>, ".myprog-config.yml") <br />
+	&nbsp;&nbsp;&nbsp;&nbsp;builder.add_source(EnvironmentSource, <font style="color: #800020;">:with_prefix</font>, "myprog_") <br />
+	&nbsp;&nbsp;&nbsp;&nbsp;builder.add_source(YamlConfigFileSource, <font style="color: #800020;">:from_file</font>, ".myprog-config.yml") <br />
 	&nbsp;&nbsp;<font style="color: #002FBD;">end</font> <br />
 	&nbsp; <br />
 	</code>
 
 	</td></tr></table></blockquote>
 	
-<p><code>add_sources</code> takes a <code>ChoicesBuilder</code> object that you configure with the choices you want to allow. Each <code>add_source</code> call describes a different source for choices. The calls should be made in precedence order, highest to lowest. The <code>DefaultChoices</code> comes automatically, so you don't need to list it.
+<p><code>add_sources</code> takes a <code>ChoicesBuilder</code> object that you configure with the choices you want to allow. Each <code>add_source</code> call describes a different source for choices. The calls should be made in precedence order, highest to lowest. The <code>DefaultSource</code> comes automatically, so you don't need to list it.
 </p>	
 <p>	
 	The sources are distinguished by the names of classes. Each class takes different arguments. Notice that the arguments are in a weird pseudo-keyword style:</p>
@@ -171,7 +171,7 @@ if $0 == __FILE__ <br />
 <p>I make no apologies. Well, maybe one or two.</p>
 
 <dl>
-	<dt><b>EnvironmentChoices</b></dt>
+	<dt><b>EnvironmentSource</b></dt>
 	<dd>
 		<p>
 			There are two ways of specifying which environment  variables should be considered choices for this program. They can be combined.
@@ -190,7 +190,7 @@ if $0 == __FILE__ <br />
 		</ul>
 	</dd>
 		
-	<dt><b>YamlConfigFileChoicesChoices</b></dt>
+	<dt><b>YamlConfigFileSourceChoices</b></dt>
 	<dd>
 		<p>
 		<b><code><font style="color: #800020;">:from_file</font>, "filename"</code></b> says that the user choices are in a <a href="http://yaml.org/" title="YAML Ain't Markup Language">YAML</a> file named "filename" in the user's home directory. The home directory is found the same way RubyGems finds it. 
@@ -215,7 +215,7 @@ if $0 == __FILE__ <br />
 			</p>
 	</dd>
 		
-	<dt><b>XmlConfigFileChoices</b></dt>
+	<dt><b>XmlConfigFileSource</b></dt>
 	<dd>
 <p>	<b><code><font style="color: #800020;">:from_file</font>, "filename"</code></b> says that the user choices are in a XML file named "filename" in the user's home directory. The home directory is found the same way RubyGems finds it. 
 	</p>
@@ -242,10 +242,10 @@ if $0 == __FILE__ <br />
 	
 	</dd>
 		
-	<dt><b>CommandLineChoices</b></dt>
+	<dt><b>CommandLineSource</b></dt>
 	<dd>
 		<p>
-			User-Choices uses <a href="http://www.ruby-doc.org/stdlib/" title="Ruby Standard Library Documentation: OptionParser">OptionParser</a> to handle command lines. The definitions associated with the <code>CommandLineChoices</code> given to <code>OptionParser</code> in a way that produces useful help output, gotten by giving the program the <code>--help</code> option. (It's also printed when errors are discovered in the command line.)
+			User-Choices uses <a href="http://www.ruby-doc.org/stdlib/" title="Ruby Standard Library Documentation: OptionParser">OptionParser</a> to handle command lines. The definitions associated with the <code>CommandLineSource</code> given to <code>OptionParser</code> in a way that produces useful help output, gotten by giving the program the <code>--help</code> option. (It's also printed when errors are discovered in the command line.)
 		</p>
 		<p>
 		
@@ -254,7 +254,7 @@ if $0 == __FILE__ <br />
 		
 				<blockquote><table bgcolor="white" border="0"><tr><td>
 				<code>
-				&nbsp;&nbsp;&nbsp;&nbsp;builder.add_source(CommandLineChoices, <font style="color: #800020;">:usage</font>, <br />
+				&nbsp;&nbsp;&nbsp;&nbsp;builder.add_source(CommandLineSource, <font style="color: #800020;">:usage</font>, <br />
 				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Usage: ruby <font style="color: #800020;">#{$0} [options] input-file output-file",</font> <br />
 				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Encode the input file into the output file.") <br />
 				&nbsp; <br />
@@ -526,7 +526,7 @@ There are 19 connections. <br />
 <blockquote><table bgcolor="white" border="0"><tr><td>
 <code>
 &nbsp;&nbsp;<font style="color: #002FBD;">def</font> <font style="color: #600080;">add_sources</font>(builder) <br />
-&nbsp;&nbsp;&nbsp;&nbsp;builder.add_source(CommandLineChoices, <font style="color: #800020;">:usage</font>, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;builder.add_source(CommandLineSource, <font style="color: #800020;">:usage</font>, <br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Usage: ruby <font style="color: #800020;">#{$0} infile outfile")</font> <br />
 &nbsp;&nbsp;<font style="color: #002FBD;">end</font> <br />
 &nbsp; <br />

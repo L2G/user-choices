@@ -13,7 +13,7 @@ include UserChoices
 class SwitchExample < Command
 
   def add_sources(builder)
-    builder.add_source(CommandLineChoices, :usage,
+    builder.add_source(CommandLineSource, :usage,
                        "Usage: ruby #{$0} [options] args...",
                        "There may be 2-4 arguments.")
     

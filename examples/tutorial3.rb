@@ -12,7 +12,7 @@ class TutorialExample < UserChoices::Command
   include UserChoices
 
   def add_sources(builder)
-    builder.add_source(CommandLineChoices, :usage,
+    builder.add_source(CommandLineSource, :usage,
                        "Usage: ruby #{$0} infile outfile")
   end
 

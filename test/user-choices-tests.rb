@@ -130,11 +130,11 @@ class TestExternallyFilledHash < Test::Unit::TestCase
 
 end
 
-class DefaultChoicesTest < Test::Unit::TestCase
+class DefaultSourceTest < Test::Unit::TestCase
   include UserChoices
   
   def setup
-    @choices = DefaultChoices.new.use_hash(:a => 'a')
+    @choices = DefaultSource.new.use_hash(:a => 'a')
     @choices.fill
   end
 
@@ -157,7 +157,7 @@ class DefaultChoicesTest < Test::Unit::TestCase
   end
 
   def test_value_conversions_are_from_strings
-    c = DefaultChoices.new.use_hash(:a => '5')
+    c = DefaultSource.new.use_hash(:a => '5')
     c.fill
     
     c.apply(:a => [Conversion.for(:integer)])
@@ -166,12 +166,12 @@ class DefaultChoicesTest < Test::Unit::TestCase
 
 end
 
-class EnvironmentChoicesTest < Test::Unit::TestCase
+class EnvironmentSourceTest < Test::Unit::TestCase
   include UserChoices
 
   def test_the_environment_args_of_interest_can_be_described_by_prefix
     with_environment_vars('amazon_option' => "1") do
-      choices = EnvironmentChoices.new.with_prefix('amazon_')
+      choices = EnvironmentSource.new.with_prefix('amazon_')
       choices.fill
       assert_true(choices.has_key?(:option))
       assert_equal('1', choices[:option])
@@ -181,7 +181,7 @@ class EnvironmentChoicesTest < Test::Unit::TestCase
   def test_the_environment_args_can_use_empty_string_as_the_prefix
     # Though it's a silly thing to do.
     with_environment_vars('amazon_option' => "1") do
-      choices = EnvironmentChoices.new.with_prefix('')
+      choices = EnvironmentSource.new.with_prefix('')
       choices.fill
       assert_true(choices.has_key?(:amazon_option))
       assert_equal('1', choices[:amazon_option])
@@ -192,7 +192,7 @@ class EnvironmentChoicesTest < Test::Unit::TestCase
     with_environment_vars('amazon_option' => "1",
                           'root' => 'ok',
                           '~' => 'ok, too') do
-      choices = EnvironmentChoices.new.mapping(:option => 'amazon_option',
+      choices = EnvironmentSource.new.mapping(:option => 'amazon_option',
                                                :root => 'root',
                                                :home => '~')
       choices.fill
@@ -206,7 +206,7 @@ class EnvironmentChoicesTest < Test::Unit::TestCase
   def test_can_also_combine_both_forms
     with_environment_vars('amazon_o' => "1",
                           'other_option' => 'still found') do
-      choices = EnvironmentChoices.new.with_prefix('amazon_').mapping(:other => 'other_option')
+      choices = EnvironmentSource.new.with_prefix('amazon_').mapping(:other => 'other_option')
       choices.fill
 
       assert_equal(2, choices.size)
@@ -218,7 +218,7 @@ class EnvironmentChoicesTest < Test::Unit::TestCase
   def test_the_order_of_combination_does_not_matter
     with_environment_vars('amazon_o' => "1",
                           'other_option' => 'still found') do
-      choices = EnvironmentChoices.new.mapping(:other => 'other_option').with_prefix('amazon_')
+      choices = EnvironmentSource.new.mapping(:other => 'other_option').with_prefix('amazon_')
       choices.fill
 
       assert_equal(2, choices.size)
@@ -229,7 +229,7 @@ class EnvironmentChoicesTest < Test::Unit::TestCase
   
   def test_unmentioned_environment_vars_are_ignored
     with_environment_vars('unfound' => "1") do
-      choices = EnvironmentChoices.new.with_prefix("my_")
+      choices = EnvironmentSource.new.with_prefix("my_")
       choices.fill
       assert_true(choices.empty?)
     end
@@ -237,7 +237,7 @@ class EnvironmentChoicesTest < Test::Unit::TestCase
 
   def test_nil_is_default
     with_environment_vars('found' => "1") do
-      choices = EnvironmentChoices.new.mapping(:option => 'f')
+      choices = EnvironmentSource.new.mapping(:option => 'f')
       choices.fill
       assert_nil(choices[:foo])
       assert_nil(choices[:option]) # for fun
@@ -248,7 +248,7 @@ class EnvironmentChoicesTest < Test::Unit::TestCase
     with_environment_vars('amazon_option' => "1") do
       assert_raises_with_matching_message(StandardError,
             /Error in the environment: amazon_option's value/) {
-        choices = EnvironmentChoices.new.with_prefix('amazon_')
+        choices = EnvironmentSource.new.with_prefix('amazon_')
         choices.fill
         choices.apply(:option => [Conversion.for(:boolean)])
       }
@@ -257,7 +257,7 @@ class EnvironmentChoicesTest < Test::Unit::TestCase
 
   def test_value_conversion_is_set_up_properly
     with_environment_vars('a' => "1", 'names' => 'foo,bar') do
-      choices = EnvironmentChoices.new.mapping(:a => 'a', :names => 'names')
+      choices = EnvironmentSource.new.mapping(:a => 'a', :names => 'names')
       choices.fill
       choices.apply(:a => [Conversion.for(:integer)], 
                     :names => [Conversion.for([:string])])
@@ -270,7 +270,7 @@ class EnvironmentChoicesTest < Test::Unit::TestCase
 end
 
 # Common behavior for all config files. Using XML as an example.
-class FileChoicesTestCase < Test::Unit::TestCase
+class FileSourceTestCase < Test::Unit::TestCase
   include UserChoices
   
   def setup
@@ -286,7 +286,7 @@ class FileChoicesTestCase < Test::Unit::TestCase
 
   def test_config_file_need_not_exist
     assert_false(File.exist?(".amazonrc"))
-    choices = XmlConfigFileChoices.new.from_file(".amazonrc")
+    choices = XmlConfigFileSource.new.from_file(".amazonrc")
 
     assert_true(choices.empty?)
   end
@@ -296,7 +296,7 @@ class FileChoicesTestCase < Test::Unit::TestCase
     with_local_config_file(".amazonrc", @some_xml) do
       assert_raises_with_matching_message(StandardError,
            %r{Error in configuration file ./.amazonrc: maximum's value.*'low'.*'high'}) {
-        choices = XmlConfigFileChoices.new.from_file(".amazonrc")
+        choices = XmlConfigFileSource.new.from_file(".amazonrc")
         choices.fill
         choices.apply(:maximum => [Conversion.for(['low', 'high'])])
       }
@@ -306,7 +306,7 @@ class FileChoicesTestCase < Test::Unit::TestCase
 
   def test_value_conversions_are_set_up_properly
     with_local_config_file('.amazonrc', @some_xml) do
-      choices = XmlConfigFileChoices.new.from_file('.amazonrc')
+      choices = XmlConfigFileSource.new.from_file('.amazonrc')
       choices.fill
       choices.apply(:maximum => [Conversion.for(:integer)])
       assert_equal(53, choices[:maximum])
@@ -317,7 +317,7 @@ class FileChoicesTestCase < Test::Unit::TestCase
 
   def test_unmentioned_values_are_nil
     with_local_config_file('.amazonrc', @some_xml) do
-      choices = XmlConfigFileChoices.new.from_file('.amazonrc')
+      choices = XmlConfigFileSource.new.from_file('.amazonrc')
       choices.fill
       assert_nil(choices[:unmentioned])
     end
@@ -325,7 +325,7 @@ class FileChoicesTestCase < Test::Unit::TestCase
 
   def test_dashed_choice_names_are_underscored
     with_local_config_file('.amazonrc', "<config><the-name>5</the-name></config>") do
-      choices = XmlConfigFileChoices.new.from_file('.amazonrc')
+      choices = XmlConfigFileSource.new.from_file('.amazonrc')
       choices.fill
       assert_equal('5', choices[:the_name])
     end
@@ -336,7 +336,7 @@ end
 
 
 
-class XmlConfigFileChoicesTestCase < Test::Unit::TestCase
+class XmlConfigFileSourceTestCase < Test::Unit::TestCase
   include UserChoices
 
   def setup
@@ -351,7 +351,7 @@ class XmlConfigFileChoicesTestCase < Test::Unit::TestCase
     
   def test_xml_config_file_normal_use
     with_local_config_file('.amazonrc', @some_xml) {
-      choices = XmlConfigFileChoices.new.from_file(".amazonrc")
+      choices = XmlConfigFileSource.new.from_file(".amazonrc")
       choices.fill
       choices.apply(:reverse => [Conversion.for(:boolean)],
                     :maximum => [Conversion.for(:integer)])
@@ -367,7 +367,7 @@ class XmlConfigFileChoicesTestCase < Test::Unit::TestCase
     with_local_config_file('.amazonrc',"<malformed></xml>") {
       assert_raise_with_matching_message(REXML::ParseException,
           %r{Badly formatted configuration file ./.amazonrc: .*Missing end tag}) do
-              XmlConfigFileChoices.new.from_file(".amazonrc")
+              XmlConfigFileSource.new.from_file(".amazonrc")
       end
     }
   end
@@ -376,7 +376,7 @@ class XmlConfigFileChoicesTestCase < Test::Unit::TestCase
 end
 
 
-class YamlConfigFileChoicesTestCase < Test::Unit::TestCase
+class YamlConfigFileSourceTestCase < Test::Unit::TestCase
   include UserChoices
 
   def setup
@@ -392,7 +392,7 @@ class YamlConfigFileChoicesTestCase < Test::Unit::TestCase
   end
   
   def test_string_assurance
-    choices = YamlConfigFileChoices.new
+    choices = YamlConfigFileSource.new
     a = [1]
     choices.ensure_element_is_string(a, 0)
     assert_equal(["1"], a)
@@ -416,7 +416,7 @@ class YamlConfigFileChoicesTestCase < Test::Unit::TestCase
   
   def test_yaml_config_file_normal_use
     with_local_config_file('.amazonrc', @some_yaml) {
-      choices = YamlConfigFileChoices.new.from_file(".amazonrc")
+      choices = YamlConfigFileSource.new.from_file(".amazonrc")
       choices.fill
 
       assert_equal(4, choices.size)
@@ -431,7 +431,7 @@ class YamlConfigFileChoicesTestCase < Test::Unit::TestCase
     with_local_config_file('.amazonrc',"foo:\n\tfred") {
       assert_raise_with_matching_message(ArgumentError,
           %r{Badly formatted configuration file ./.amazonrc: .*syntax error}) do
-              pp YamlConfigFileChoices.new.from_file(".amazonrc"), 'should never have been reached'
+              pp YamlConfigFileSource.new.from_file(".amazonrc"), 'should never have been reached'
       end
     }
   end

@@ -12,10 +12,10 @@ class TutorialExample < UserChoices::Command
   include UserChoices
 
   def add_sources(builder)
-    builder.add_source(CommandLineChoices, :usage,
+    builder.add_source(CommandLineSource, :usage,
                        "Usage: ruby #{$0} [options] file1 [file2]")
-    builder.add_source(EnvironmentChoices, :with_prefix, "myprog_")
-    builder.add_source(YamlConfigFileChoices, :from_file, ".myprog-config.yml")
+    builder.add_source(EnvironmentSource, :with_prefix, "myprog_")
+    builder.add_source(YamlConfigFileSource, :from_file, ".myprog-config.yml")
   end
 
   def add_choices(builder)

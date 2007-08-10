@@ -15,8 +15,8 @@ module UserChoices
       postprocess_user_choices
     end
 
-    # Add sources such as EnvironmentChoices, XmlConfigFileChoices,
-    # and CommandLineChoices to the ChoicesBuilder.
+    # Add sources such as EnvironmentSource, XmlConfigFileSource,
+    # and CommandLineSource to the ChoicesBuilder.
     #
     # Must be defined in a subclass.
     def add_sources(builder); subclass_responsibility; end
