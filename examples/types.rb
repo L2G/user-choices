@@ -28,18 +28,24 @@ class TypesExample < Command
 
     # This is how you insist that an option argument be an integer
     # (in string form). If correctly formatted, the string is turned
-    # into an integer. Note that the default value is a string, not
-    # an integer. 
+    # into an integer. Note that the default value can be either a 
+    # string or an integer.
     builder.add_choice(:must_be_integer,
-                       :default => '0',
+                       :default => 0,
                        :type => :integer) { | command_line |
       command_line.uses_option("--must-be-integer INT")
     }
 
-
-    builder.add_choice(:option_list, :type => [:string]) { | command_line |
-      command_line.uses_option("--option-list OPT,OPT...",
-                               "Comma-separated list of options.")
+    # This is how to tell the builder that the argument is a
+    # comma-separated list of options. The declaration is not required
+    # for command lines, or lists in a configuration file. Those are
+    # already broken out into their constituent elements in the source
+    # text, so the builder doesn't have to split a string at comma
+    # boundaries. You can declare the type if you want, though.
+    
+    builder.add_choice(:option_list, :type => [:string], :length => 2) { | command_line |
+      command_line.uses_option("--option-list OPT,OPT",
+                               "Comma-separated list of exactly two options.")
     }
                        
 

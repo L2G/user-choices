@@ -8,10 +8,10 @@ require 'extensions/string'
 
 
 # The general contract of these objects.
-class TestExternallyFilledHash < Test::Unit::TestCase
+class TestAbstractSource < Test::Unit::TestCase
   include UserChoices
   
-  class SubHash < UserChoices::ExternallyFilledHash
+  class SubHash < UserChoices::AbstractSource
 
     # New never takes arguments. Class-specific initialization is done
     # with an appropriately-named method.

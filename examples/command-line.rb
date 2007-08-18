@@ -5,24 +5,17 @@ require 'pathname'
 $:.unshift((Pathname.new(__FILE__).parent.parent + 'lib').to_s)
 require 's4t-utils/load-path-auto-adjuster'
 
-
-### How to use UserChoices to handle the command line.
-### (A Simple example.) 
-
-
-
 require 'pp'
 require 'user-choices'
-include UserChoices
 
-class CommandLineExample < Command
+class CommandLineExample < UserChoices::Command
 
   # The _sources_ are the various places in which the user can
   # describe her choices to the program. In this case, there's
   # only the command line. 
 
   def add_sources(builder)
-    builder.add_source(CommandLineSource, :usage,
+    builder.add_source(UserChoices::CommandLineSource, :usage,
                        "Usage: ruby #{$0} [options] names...")
   end
 

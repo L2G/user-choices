@@ -15,10 +15,12 @@ class Examples < Test::Unit::TestCase
   RUBY = "ruby #{PACKAGE_ROOT}/examples/"
 
   require "#{PACKAGE_ROOT}/examples/command-line"
-  require "#{PACKAGE_ROOT}/examples/types"
+  # require "#{PACKAGE_ROOT}/examples/default-values" # not needed
+  require "#{PACKAGE_ROOT}/examples/multiple-sources"
+  # require "#{PACKAGE_ROOT}/examples/postprocess" # not needed
   require "#{PACKAGE_ROOT}/examples/switches"
   require "#{PACKAGE_ROOT}/examples/two-args"
-  require "#{PACKAGE_ROOT}/examples/multiple-sources"
+  require "#{PACKAGE_ROOT}/examples/types"
 
 
   def test_succeeding_examples
@@ -111,7 +113,7 @@ class Examples < Test::Unit::TestCase
     with_local_config_file("ms-config.yml", yml) {
       val = evalue("#{RUBY}multiple-sources.rb")
       assert_equal({:names => [], :ordinary_choice => 'greetings'}, val)
-    }
+    } 
 
     with_local_config_file("ms-config.yml", yml) {
       with_environment_vars("ms_ordinary_choice" => 'hi') { 
@@ -150,11 +152,11 @@ class Examples < Test::Unit::TestCase
                  error(CommandLineExample,  "--other 3 -- choice"))
 
     
-    assert_match(/'not-a' is not a valid value for '--a-or-b'/,
+    assert_match(/--a-or-b's value must be one of 'a' or 'b'.*'not-a' doesn't look right/,
                  error(TypesExample,  "--a-or-b not-a  argument"))
 
     
-    assert_match(/'--must-be-integer' requires an integer value/,
+    assert_match(/--must-be-integer's value must be an integer/,
                  error(TypesExample,  "--must-be-integer 1d argument"))
 
 
@@ -195,6 +197,76 @@ class Examples < Test::Unit::TestCase
     result = error(SwitchExample, "--help")
     assert_match(/Usage.*Options:.*--\[no-\]switch.*Show this message/m,
                  result)
+  end
+  
+  
+  def test_tutorial_usage_section
+    assert_match(/There are 0 connections./, `#{RUBY}tutorial1.rb `)
+    
+    with_local_config_file(".myprog-config.yml", "connections: 19") do
+      assert_match(/There are 19 connections./, `#{RUBY}tutorial1.rb `)
+      
+      with_environment_vars("myprog_connections" => '3') do
+        assert_match(/There are 3 connections./, `#{RUBY}tutorial1.rb `)
+
+        assert_match(/There are 999 connections./, 
+                     `#{RUBY}tutorial1.rb --connection 999`)
+      end
+
+      with_environment_vars("myprog_connections" => 'hi') do
+        assert_match(/Error in the environment: myprog_connections's value must be an integer, and 'hi' doesn't look right/, 
+                     `#{RUBY}tutorial1.rb 2>&1`)
+                     
+      end
+      
+      output = `#{RUBY}tutorial1.rb --connections hi 2>&1`
+      assert_match(/Error in the command line: --connections's value must be an integer, and 'hi' doesn't look right/,
+                   output)
+      assert_match(/Usage: ruby.*tutorial1.rb/, output)
+    end
+  end
+  
+  def test_tutorial_command_line_behavior_section
+    assert_match(/SSH should be used/, `#{RUBY}tutorial2.rb --ssh`)
+    assert_match(/SSH should be used/, `#{RUBY}tutorial2.rb -s`)
+    assert_match(/-s,\s+--\[no-\]ssh/, `#{RUBY}tutorial2.rb --help 2>&1`)
+    
+    output = `#{RUBY}tutorial3.rb arg1 arg2`
+    assert_match(/:files\s*=>\s*\["arg1", "arg2"\]/, output)
+    
+    yaml = "
+      connections: 19
+      files:
+        - one
+        - two
+      "
+
+    with_local_config_file(".myprog-config.yml", yaml) do
+      output = `#{RUBY}tutorial3.rb cmd`
+      assert_match(/:files\s*=>\s*\["cmd"\]/, output)
+    
+      output = `#{RUBY}tutorial3.rb`
+      assert_match(/:files\s*=>\s*\["one", "two"\]/, output)
+      
+      output = `#{RUBY}tutorial4.rb 1 2 3 2>&1`
+      assert_match(/Error in the command line: 3 arguments given, 1 or 2 expected/, output)
+      
+      output = `#{RUBY}tutorial4.rb`
+      assert_match(/:files\s*=>\s*\["one", "two"\]/, output)
+    end
+    
+    assert_match(/:infile=>"1"/, `#{RUBY}tutorial5.rb 1`)
+    assert_match(/Error in the command line: 0 arguments given, 1 expected./,
+                 `#{RUBY}tutorial5.rb 2>&1`)
+
+    assert_match(/\{\}/, `#{RUBY}tutorial6.rb`)
+  end
+  
+  def test_tutorial_touchup_section
+    output = `#{RUBY}tutorial7.rb one two`
+    assert_match(/:infile=>"one"/, output)
+    assert_match(/:outfile=>"two"/, output)
+    assert_match(/:files=>\["one", "two"\]/, output)
   end
 
 end

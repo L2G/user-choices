@@ -8,12 +8,11 @@ require 's4t-utils/load-path-auto-adjuster'
 
 require 'pp'
 require 'user-choices'
-include UserChoices
 
-class ArgNotingCommand < Command
+class ArgNotingCommand < UserChoices::Command
 
   def add_sources(builder)
-    builder.add_source(CommandLineSource, :usage,
+    builder.add_source(UserChoices::CommandLineSource, :usage,
                        "Usage: ruby #{$0} [options] [name]")
   end
 
@@ -28,7 +27,7 @@ class ArgNotingCommand < Command
 
     # uses_optional_arg allows either zero or one arguments. If an
     # argument is given, it is directly the value of user_choices[key]
-    # (rather than an array).
+    # (rather than being stored as a single-element array).
     builder.add_choice(:name) { | command_line |
       command_line.uses_optional_arg
     }

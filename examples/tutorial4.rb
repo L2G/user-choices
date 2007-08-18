@@ -35,6 +35,9 @@ class TutorialExample < UserChoices::Command
       command_line.uses_switch("-s", "--ssh",
                                "Use ssh to open connection.")
     }
+    builder.add_choice(:files, :length => 1..2) { | command_line | 
+      command_line.uses_arglist
+    }
   end
 
   def execute

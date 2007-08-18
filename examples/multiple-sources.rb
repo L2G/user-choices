@@ -24,6 +24,11 @@ class MultipleSourcesExample < UserChoices::Command
   # XmlConfigFileSource reads from a given XML file. The choices in the
   # config file have the same spelling as the choice name (without the
   # colon that makes the choice name a symbol).
+  #
+  # CommandLineSource uses the command line (including the argument list). 
+  # Much of the initialization is done with a block attached to add_choice. 
+  #
+  # Sources are added in descending order of precedence.
 
   def add_sources(builder)
     builder.add_source(CommandLineSource, :usage,

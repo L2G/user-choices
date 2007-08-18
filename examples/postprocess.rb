@@ -8,12 +8,11 @@ require 's4t-utils/load-path-auto-adjuster'
 
 require 'pp'
 require 'user-choices'
-include UserChoices
 
-class ArgNotingCommand < Command
+class ArgNotingCommand < UserChoices::Command
 
   def add_sources(builder)
-    builder.add_source(CommandLineSource, :usage,
+    builder.add_source(UserChoices::CommandLineSource, :usage,
                        "Usage: ruby #{$0} [options] infile outfile")
     
   end
@@ -26,7 +25,7 @@ class ArgNotingCommand < Command
 
   # postprocess_user_choices gives the program the opportunity to
   # do something about choices immediately after they are made. This method
-  # runs only once per invocation; whereas the execute() method can 
+  # runs only once per invocation, whereas the execute() method can 
   # execute several times. This method will often set instance variables. 
   def postprocess_user_choices
     @user_choices[:infile] = @user_choices[:args][0]

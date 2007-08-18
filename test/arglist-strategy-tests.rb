@@ -13,11 +13,11 @@ include S4tUtils
 # Since ArglistStrategies were extracted from CommandLineSource, most
 # of the testing is implicit.
 
-class ArglistStrategyTests < Test::Unit::TestCase
+class AbstractArglistStrategyTests < Test::Unit::TestCase
   include UserChoices
   
   def test_range_violation_descriptions
-    @arglist_handler = ArglistStrategy.new('unimportant')
+    @arglist_handler = AbstractArglistStrategy.new('unimportant')
     # Good about plurals.
     assert_match(/2 arguments given, 3 expected/,
                  @arglist_handler.arglist_arity_error(2, 3))

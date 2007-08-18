@@ -242,6 +242,18 @@ class ARGLISTS_CommandLineTest < CommandLineTestCase
     assert_equal("the argument list", @cmd_line.external_names[:fred])
   end
 
+  def test_deep_copy_of_conversion_map
+    map = { :choice => [Conversion.for([:string]), Conversion.for(:length => 3)]}
+    copy = @cmd_line.deep_copy(map)
+    assert_not_equal(map[:choice].collect { |c| c.object_id }, 
+                     copy[:choice].collect { |c| c.object_id })
+    assert_true(copy[:choice][0].class.described_by?([:string]))
+    assert_true(copy[:choice][1].class.described_by?(:length => 3))
+    
+    map.delete(:choice)
+    assert_false(map.has_key?(:choice))
+    assert_true(copy.has_key?(:choice))
+  end
 end
 
 class ARG_CommandLineTest < CommandLineTestCase

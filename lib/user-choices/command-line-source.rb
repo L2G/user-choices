@@ -3,15 +3,16 @@ require 's4t-utils'
 require 'user-choices/sources.rb'
 require 'user-choices/arglist-strategies'
 include S4tUtils
+require 'extensions/string'
 
 module UserChoices # :nodoc
 
   # Treat the command line (including the arguments) as a source
   # of choices.
-  class CommandLineSource < ExternallyFilledHash
+  class CommandLineSource < AbstractSource
     
-    def initialize(*args)
-      super(*args)
+    def initialize
+      super
       @parser = OptionParser.new
       @arglist_handler = NoArguments.new(self)
     end
@@ -27,49 +28,12 @@ module UserChoices # :nodoc
       self
     end
     
-    def fill
-      exit_upon_error do
-        remainder = @parser.parse(ARGV)
-        @arglist_handler.fill(remainder)
-      end
-    end
-    
-    def apply(all_choice_conversions)
-      generic_conversions = @arglist_handler.claim_conversions(all_choice_conversions)
-      
-      exit_upon_error do
-        @arglist_handler.apply_claimed_conversions
-        super(generic_conversions)
-      end
-    end
-
-    def adjust(all_choices)
-      exit_upon_error do
-        @arglist_handler.adjust(all_choices)
-      end
-    end
-
-
-
-
-    def help    # :nodoc: 
+    # Called in the case of command-line error or explicit request (--help)
+    # to print usage information.
+    def help
       $stderr.puts @parser
       exit
     end
-
-    def help_banner(banner, *more)    # :nodoc: 
-      @parser.banner = banner
-      more.each do | line |
-        @parser.separator(line)
-      end
-      @parser.separator ''
-      @parser.separator 'Options:'
-
-      @parser.on_tail("-?", "-h", "--help", "Show this message.") do
-        help
-      end
-    end
-
 
     # What we can parse out of the command line
 
@@ -112,23 +76,71 @@ module UserChoices # :nodoc
     # Bundle up all non-option and non-switch arguments into an
     # array of strings indexed by _choice_. 
     def uses_arglist(choice)
-      choice_requires_arglist_strategy(choice, ArbitraryArglist)
+      use_strategy(choice, ArbitraryArglist)
     end
 
     # The single argument required argument is turned into
     # a string indexed by _choice_. Any other case is an error.
     def uses_arg(choice)
-      choice_requires_arglist_strategy(choice, OneRequiredArg)
+      use_strategy(choice, OneRequiredArg)
     end
 
     # If a single argument is present, it (as a string) is the value of
     # _choice_. If no argument is present, _choice_ has no value.
     # Any other case is an error. 
     def uses_optional_arg(choice)
-      choice_requires_arglist_strategy(choice, OneOptionalArg)
+      use_strategy(choice, OneOptionalArg)
+    end
+
+
+
+
+    # Public for testing.
+
+    def fill # :nodoc:
+      exit_upon_error do
+        remainder = @parser.parse(ARGV)
+        @arglist_handler.fill(remainder)
+      end
     end
     
-    def choice_requires_arglist_strategy(choice, strategy)
+    def apply(all_choice_conversions) # :nodoc:
+      safely_modifiable_conversions = deep_copy(all_choice_conversions)
+      @arglist_handler.claim_conversions(safely_modifiable_conversions)
+      
+      exit_upon_error do
+        @arglist_handler.apply_claimed_conversions
+        super(safely_modifiable_conversions)
+      end
+    end
+
+    def adjust(all_choices) # :nodoc:
+      exit_upon_error do
+        @arglist_handler.adjust(all_choices)
+      end
+    end
+
+    def help_banner(banner, *more)    # :nodoc: 
+      @parser.banner = banner
+      more.each do | line |
+        @parser.separator(line)
+      end
+      @parser.separator ''
+      @parser.separator 'Options:'
+
+      @parser.on_tail("-?", "-h", "--help", "Show this message.") do
+        help
+      end
+    end
+
+    def deep_copy(conversions) # :nodoc:
+      copy = conversions.dup
+      copy.each do |k, v|
+        copy[k] = v.collect { |conversion| conversion.dup }
+      end
+    end
+    
+    def use_strategy(choice, strategy) # :nodoc:
       # The argument list choice probably does not need a name. 
       # (Currently, the name is unused.) But I'll give it one, just 
       # in case, and for debugging.
@@ -137,7 +149,7 @@ module UserChoices # :nodoc
     end
     
 
-    def exit_upon_error
+    def exit_upon_error # :nodoc:
       begin
         yield
       rescue SystemExit

@@ -4,7 +4,7 @@
 #  Copyright (c) 2007. All rights reserved.
 
 module UserChoices
-  class Conversion
+  class Conversion # :nodoc:
     @@subclasses = []
     def self.inherited(subclass)
       @@subclasses << subclass
@@ -37,7 +37,7 @@ module UserChoices
     def does_length_check?; false; end
   end
   
-  class ConversionToInteger < Conversion
+  class ConversionToInteger < Conversion # :nodoc:
     def self.described_by?(conversion_tag)
       conversion_tag == :integer
     end
@@ -52,7 +52,7 @@ module UserChoices
     def convert(value); value.to_i; end
   end
   
-  class ConversionToBoolean < Conversion
+  class ConversionToBoolean < Conversion # :nodoc:
     def self.described_by?(conversion_tag)
       conversion_tag == :boolean
     end
@@ -73,7 +73,7 @@ module UserChoices
     end
   end
   
-  class SplittingConversion < Conversion
+  class SplittingConversion < Conversion # :nodoc:
     def self.described_by?(conversion_tag)
       conversion_tag == [:string]
     end
@@ -93,7 +93,7 @@ module UserChoices
     
   end
   
-  class LengthConversion < Conversion
+  class LengthConversion < Conversion # :nodoc: 
     is_abstract
     
     attr_reader :required_length
@@ -114,7 +114,7 @@ module UserChoices
     
   end
   
-  class ExactLengthConversion < LengthConversion 
+  class ExactLengthConversion < LengthConversion # :nodoc: 
     def self.described_by?(conversion_tag)
       super(conversion_tag, Integer)
     end
@@ -126,7 +126,7 @@ module UserChoices
     end
   end
 
-  class RangeLengthConversion < LengthConversion
+  class RangeLengthConversion < LengthConversion # :nodoc:
     def self.described_by?(conversion_tag)
       super(conversion_tag, Range)
     end
@@ -141,7 +141,7 @@ module UserChoices
   # Note: since some of the above classes are described_by? methods that 
   # respond_to :include, this class should be last, so that it's checked 
   # last.
-  class ChoiceCheckingConversion < Conversion
+  class ChoiceCheckingConversion < Conversion  # :nodoc:
     def self.described_by?(conversion_tag)
       conversion_tag.respond_to?(:include?)
     end
@@ -149,9 +149,6 @@ module UserChoices
     def suitable?(actual); @conversion_tag.include?(actual); end
     def description; "one of #{friendly_list('or', @conversion_tag)}"; end
   end
-  
-
-
 end
 
 

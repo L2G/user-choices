@@ -8,12 +8,11 @@ require 's4t-utils/load-path-auto-adjuster'
 
 require 'pp'
 require 'user-choices'
-include UserChoices
 
-class SwitchExample < Command
+class SwitchExample < UserChoices::Command
 
   def add_sources(builder)
-    builder.add_source(CommandLineSource, :usage,
+    builder.add_source(UserChoices::CommandLineSource, :usage,
                        "Usage: ruby #{$0} [options] args...",
                        "There may be 2-4 arguments.")
     
@@ -25,14 +24,16 @@ class SwitchExample < Command
   # default.
   def add_choices(builder)
     builder.add_choice(:switch,
-                       :default => 'false',
+                       :default => false,
                        :type => :boolean) { | command_line |
       command_line.uses_switch("--switch", "-s")
     }
 
-    # You specify a range of allowable arguments with Ruby Ranges.
-    builder.add_choice(:args) { | command_line |
-      command_line.uses_arglist(2..4)
+    # You control the allowable length of a choice with the :length
+    # keyword argument. It applies to command-line arglists, lists given
+    # in configuration files, and the like.
+    builder.add_choice(:args, :length => 2..4) { | command_line |
+      command_line.uses_arglist
     }
   end
 

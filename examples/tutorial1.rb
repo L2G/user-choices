@@ -3,6 +3,8 @@
 #  Created by Brian Marick on 2007-08-09.
 #  Copyright (c) 2007. All rights reserved.
 
+# See the tutorial for explanations.
+
 ### The following adjusts the load path so that the correct version of
 ### a self-contained package is found, no matter where the script is
 ### run from. 
@@ -12,6 +14,8 @@ require 's4t-utils/load-path-auto-adjuster'
 
 require 'pp'
 require 'user-choices'
+
+# See the tutorial for explanations.
 
 class TutorialExample < UserChoices::Command
   include UserChoices

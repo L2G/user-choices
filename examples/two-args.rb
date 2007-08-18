@@ -8,20 +8,19 @@ require 's4t-utils/load-path-auto-adjuster'
 
 require 'pp'
 require 'user-choices'
-include UserChoices
 
-class TwoArgExample < Command
+class TwoArgExample < UserChoices::Command
 
   def add_sources(builder)
-    builder.add_source(CommandLineSource, :usage,
+    builder.add_source(UserChoices::CommandLineSource, :usage,
                        "Usage: ruby #{$0} [options] infile outfile")
     
   end
 
   def add_choices(builder)
-    # You can specify an exact number of arguments, rather than a range.
-    builder.add_choice(:args) { | command_line |
-      command_line.uses_arglist(2)
+    # You can specify an exact number of array elements required.
+    builder.add_choice(:args, :length => 2) { | command_line |
+      command_line.uses_arglist
     }
   end
 

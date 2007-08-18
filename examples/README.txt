@@ -1,3 +1,6 @@
+Here are brief instructions for using the different scripts in this directory. The tutorial files aren't described here; instead, the tutorial (on the website) describes them. 
+
+
 		      == Command-line arguments ==
 
 + Help is generated for you:

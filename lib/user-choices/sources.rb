@@ -13,7 +13,7 @@ module UserChoices   # :nodoc
   # TODO: Right now, elements that are named in a source, but not in an 
   # add_choice() call, nevertheless appear in the final array. Is that good? 
   # Bad? Irrelevant?
-  class ExternallyFilledHash < Hash # :nodoc:
+  class AbstractSource < Hash # :nodoc:
     
     attr_reader :external_names
 
@@ -72,7 +72,7 @@ module UserChoices   # :nodoc
 
   end
 
-  class DefaultSource < ExternallyFilledHash   # :nodoc:
+  class DefaultSource < AbstractSource   # :nodoc:
     
     def use_hash(defaults)
       @defaults = defaults
@@ -100,7 +100,7 @@ module UserChoices   # :nodoc
 
   
   # Describe the environment as a source of choices. 
-  class EnvironmentSource < ExternallyFilledHash
+  class EnvironmentSource < AbstractSource
     def fill    # :nodoc:
       @external_names.each { | key, env_var |
         self[key] = ENV[env_var] if ENV.has_key?(env_var)
@@ -149,7 +149,7 @@ module UserChoices   # :nodoc
   EnvironmentChoices = EnvironmentSource   # Backward compatibility
   
   
-  class FileSource < ExternallyFilledHash # :nodoc: 
+  class FileSource < AbstractSource # :nodoc: 
 
     def from_file(filename)
       @path = File.join(S4tUtils.find_home, filename)
