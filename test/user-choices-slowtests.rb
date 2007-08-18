@@ -12,71 +12,72 @@ class Examples < Test::Unit::TestCase
     eval(result)
   end
 
-  RUBY = "ruby #{PACKAGE_ROOT}/examples/"
+  EX = "ruby #{PACKAGE_ROOT}/examples/older/"
+  TUT = "ruby #{PACKAGE_ROOT}/examples/tutorial/"
 
-  require "#{PACKAGE_ROOT}/examples/command-line"
+  require "#{PACKAGE_ROOT}/examples/older/command-line"
   # require "#{PACKAGE_ROOT}/examples/default-values" # not needed
-  require "#{PACKAGE_ROOT}/examples/multiple-sources"
+  require "#{PACKAGE_ROOT}/examples/older/multiple-sources"
   # require "#{PACKAGE_ROOT}/examples/postprocess" # not needed
-  require "#{PACKAGE_ROOT}/examples/switches"
-  require "#{PACKAGE_ROOT}/examples/two-args"
-  require "#{PACKAGE_ROOT}/examples/types"
+  require "#{PACKAGE_ROOT}/examples/older/switches"
+  require "#{PACKAGE_ROOT}/examples/older/two-args"
+  require "#{PACKAGE_ROOT}/examples/older/types"
 
 
   def test_succeeding_examples
-    val = evalue("#{RUBY}command-line.rb --choice cho sophie paul dawn me")
+    val = evalue("#{EX}command-line.rb --choice cho sophie paul dawn me")
     assert_equal({:names => ["sophie", "paul", "dawn", "me"],
                    :choice=>"cho"},
                  val)
 
-    val = evalue("#{RUBY}command-line.rb -c choice")
+    val = evalue("#{EX}command-line.rb -c choice")
     assert_equal({:names => [], :choice => "choice"}, val)
 
-    val = evalue("#{RUBY}command-line.rb -cchoice")
+    val = evalue("#{EX}command-line.rb -cchoice")
     assert_equal({:names => [], :choice => "choice"}, val)
 
-    val = evalue("#{RUBY}command-line.rb --choi choice")
+    val = evalue("#{EX}command-line.rb --choi choice")
     assert_equal({:names => [], :choice => "choice"}, val)
 
-    val = evalue("#{RUBY}command-line.rb --choi choice -- -name1- -name2-")
+    val = evalue("#{EX}command-line.rb --choi choice -- -name1- -name2-")
     assert_equal({:names => ['-name1-', '-name2-'], :choice => 'choice'}, val)
 
 
-    val = evalue("#{RUBY}default-values.rb --choice specific")
+    val = evalue("#{EX}default-values.rb --choice specific")
     assert_equal({:choice => 'specific'}, val)
 
-    val = evalue("#{RUBY}default-values.rb")
+    val = evalue("#{EX}default-values.rb")
     assert_equal({:choice => 'default'}, val)
 
-    val = evalue("#{RUBY}default-values.rb only-arg")
+    val = evalue("#{EX}default-values.rb only-arg")
     assert_equal({:choice => 'default', :name => 'only-arg'}, val)
 
 
-    val = evalue("#{RUBY}types.rb --must-be-integer 3 argument")
+    val = evalue("#{EX}types.rb --must-be-integer 3 argument")
     assert_equal({:arg => 'argument', :must_be_integer => 3}, val)
 
 
-    val = evalue("#{RUBY}switches.rb 1 2")
+    val = evalue("#{EX}switches.rb 1 2")
     assert_equal({:switch=> false, :args => ['1', '2']}, val)
 
-    val = evalue("#{RUBY}switches.rb --switch 1 2")
+    val = evalue("#{EX}switches.rb --switch 1 2")
     assert_equal({:switch=> true, :args => ['1', '2']}, val)
 
-    val = evalue("#{RUBY}switches.rb -s 2 1 ")
+    val = evalue("#{EX}switches.rb -s 2 1 ")
     assert_equal({:switch=> true, :args => ['2', '1']}, val)
 
-    val = evalue("#{RUBY}switches.rb --no-switch 1 2")
+    val = evalue("#{EX}switches.rb --no-switch 1 2")
     assert_equal({:switch=> false, :args => ['1', '2']}, val)
 
-    val = evalue("#{RUBY}switches.rb 1  2  3 4")
+    val = evalue("#{EX}switches.rb 1  2  3 4")
     assert_equal({:switch=> false, :args => ['1', '2', '3', '4']}, val)
 
 
-    val = evalue("#{RUBY}two-args.rb 1 2 ")
+    val = evalue("#{EX}two-args.rb 1 2 ")
     assert_equal({:args => ['1', '2']}, val)
 
 
-    val = evalue("#{RUBY}postprocess.rb 1 2")
+    val = evalue("#{EX}postprocess.rb 1 2")
     assert_equal({:infile => '1', :outfile => '2', :args => ['1', '2']},
                  val)
   end
@@ -85,13 +86,13 @@ class Examples < Test::Unit::TestCase
     xml = "<config><ordinary_choice>greetings</ordinary_choice></config>"
 
     with_local_config_file("ms-config.xml", xml) {
-      val = evalue("#{RUBY}multiple-sources.rb")
+      val = evalue("#{EX}multiple-sources.rb")
       assert_equal({:names => [], :ordinary_choice => 'greetings'}, val)
     }
 
     with_local_config_file("ms-config.xml", xml) {
       with_environment_vars("ms_ordinary_choice" => 'hi') { 
-        val = evalue("#{RUBY}multiple-sources.rb ")
+        val = evalue("#{EX}multiple-sources.rb ")
         assert_equal({:names => [], :ordinary_choice => 'hi'}, val)
       }
     }
@@ -99,7 +100,7 @@ class Examples < Test::Unit::TestCase
 
     with_local_config_file("ms-config.xml", xml) {
       with_environment_vars("ms_ordinary_choice" => 'hi') { 
-        val = evalue("#{RUBY}multiple-sources.rb --ordinary-choice hello")
+        val = evalue("#{EX}multiple-sources.rb --ordinary-choice hello")
         assert_equal({:names => [], :ordinary_choice => 'hello'}, val)
       }
     }
@@ -111,13 +112,13 @@ class Examples < Test::Unit::TestCase
     yml = "ordinary_choice: greetings"
 
     with_local_config_file("ms-config.yml", yml) {
-      val = evalue("#{RUBY}multiple-sources.rb")
+      val = evalue("#{EX}multiple-sources.rb")
       assert_equal({:names => [], :ordinary_choice => 'greetings'}, val)
     } 
 
     with_local_config_file("ms-config.yml", yml) {
       with_environment_vars("ms_ordinary_choice" => 'hi') { 
-        val = evalue("#{RUBY}multiple-sources.rb ")
+        val = evalue("#{EX}multiple-sources.rb ")
         assert_equal({:names => [], :ordinary_choice => 'hi'}, val)
       }
     }
@@ -125,7 +126,7 @@ class Examples < Test::Unit::TestCase
 
     with_local_config_file("ms-config.yml", yml) {
       with_environment_vars("ms_ordinary_choice" => 'hi') { 
-        val = evalue("#{RUBY}multiple-sources.rb --ordinary-choice hello")
+        val = evalue("#{EX}multiple-sources.rb --ordinary-choice hello")
         assert_equal({:names => [], :ordinary_choice => 'hello'}, val)
       }
     }
@@ -201,37 +202,37 @@ class Examples < Test::Unit::TestCase
   
   
   def test_tutorial_usage_section
-    assert_match(/There are 0 connections./, `#{RUBY}tutorial1.rb `)
+    assert_match(/There are 0 connections./, `#{TUT}tutorial1.rb `)
     
     with_local_config_file(".myprog-config.yml", "connections: 19") do
-      assert_match(/There are 19 connections./, `#{RUBY}tutorial1.rb `)
+      assert_match(/There are 19 connections./, `#{TUT}tutorial1.rb `)
       
       with_environment_vars("myprog_connections" => '3') do
-        assert_match(/There are 3 connections./, `#{RUBY}tutorial1.rb `)
+        assert_match(/There are 3 connections./, `#{TUT}tutorial1.rb `)
 
         assert_match(/There are 999 connections./, 
-                     `#{RUBY}tutorial1.rb --connection 999`)
+                     `#{TUT}tutorial1.rb --connection 999`)
       end
 
       with_environment_vars("myprog_connections" => 'hi') do
         assert_match(/Error in the environment: myprog_connections's value must be an integer, and 'hi' doesn't look right/, 
-                     `#{RUBY}tutorial1.rb 2>&1`)
+                     `#{TUT}tutorial1.rb 2>&1`)
                      
       end
       
-      output = `#{RUBY}tutorial1.rb --connections hi 2>&1`
+      output = `#{TUT}tutorial1.rb --connections hi 2>&1`
       assert_match(/Error in the command line: --connections's value must be an integer, and 'hi' doesn't look right/,
                    output)
-      assert_match(/Usage: ruby.*tutorial1.rb/, output)
+      assert_match(/Usage: TUT.*tutorial1.rb/, output)
     end
   end
   
   def test_tutorial_command_line_behavior_section
-    assert_match(/SSH should be used/, `#{RUBY}tutorial2.rb --ssh`)
-    assert_match(/SSH should be used/, `#{RUBY}tutorial2.rb -s`)
-    assert_match(/-s,\s+--\[no-\]ssh/, `#{RUBY}tutorial2.rb --help 2>&1`)
+    assert_match(/SSH should be used/, `#{TUT}tutorial2.rb --ssh`)
+    assert_match(/SSH should be used/, `#{TUT}tutorial2.rb -s`)
+    assert_match(/-s,\s+--\[no-\]ssh/, `#{TUT}tutorial2.rb --help 2>&1`)
     
-    output = `#{RUBY}tutorial3.rb arg1 arg2`
+    output = `#{TUT}tutorial3.rb arg1 arg2`
     assert_match(/:files\s*=>\s*\["arg1", "arg2"\]/, output)
     
     yaml = "
@@ -242,28 +243,28 @@ class Examples < Test::Unit::TestCase
       "
 
     with_local_config_file(".myprog-config.yml", yaml) do
-      output = `#{RUBY}tutorial3.rb cmd`
+      output = `#{TUT}tutorial3.rb cmd`
       assert_match(/:files\s*=>\s*\["cmd"\]/, output)
     
-      output = `#{RUBY}tutorial3.rb`
+      output = `#{TUT}tutorial3.rb`
       assert_match(/:files\s*=>\s*\["one", "two"\]/, output)
       
-      output = `#{RUBY}tutorial4.rb 1 2 3 2>&1`
+      output = `#{TUT}tutorial4.rb 1 2 3 2>&1`
       assert_match(/Error in the command line: 3 arguments given, 1 or 2 expected/, output)
       
-      output = `#{RUBY}tutorial4.rb`
+      output = `#{TUT}tutorial4.rb`
       assert_match(/:files\s*=>\s*\["one", "two"\]/, output)
     end
     
-    assert_match(/:infile=>"1"/, `#{RUBY}tutorial5.rb 1`)
+    assert_match(/:infile=>"1"/, `#{TUT}tutorial5.rb 1`)
     assert_match(/Error in the command line: 0 arguments given, 1 expected./,
-                 `#{RUBY}tutorial5.rb 2>&1`)
+                 `#{TUT}tutorial5.rb 2>&1`)
 
-    assert_match(/\{\}/, `#{RUBY}tutorial6.rb`)
+    assert_match(/\{\}/, `#{TUT}tutorial6.rb`)
   end
   
   def test_tutorial_touchup_section
-    output = `#{RUBY}tutorial7.rb one two`
+    output = `#{TUT}tutorial7.rb one two`
     assert_match(/:infile=>"one"/, output)
     assert_match(/:outfile=>"two"/, output)
     assert_match(/:files=>\["one", "two"\]/, output)
