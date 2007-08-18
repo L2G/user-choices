@@ -223,7 +223,7 @@ class Examples < Test::Unit::TestCase
       output = `#{TUT}tutorial1.rb --connections hi 2>&1`
       assert_match(/Error in the command line: --connections's value must be an integer, and 'hi' doesn't look right/,
                    output)
-      assert_match(/Usage: TUT.*tutorial1.rb/, output)
+      assert_match(/Usage: ruby.*tutorial1.rb/, output)
     end
   end
   

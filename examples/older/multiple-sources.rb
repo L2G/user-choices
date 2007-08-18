@@ -2,7 +2,7 @@
 ### a self-contained package is found, no matter where the script is
 ### run from. 
 require 'pathname'
-$:.unshift((Pathname.new(__FILE__).parent.parent + 'lib').to_s)
+$:.unshift((Pathname.new(__FILE__).parent.parent.parent + 'lib').to_s)
 require 's4t-utils/load-path-auto-adjuster'
 
 require 'pp'
