@@ -111,7 +111,7 @@ class TestDefaultsAndTypes < Test::Unit::TestCase
   def test_missing_required_arg_is_caught_by_command_line
     with_command_args("") {
       b = ChoicesBuilder.new
-      b.add_source(CommandLineSource, :usage, 'foo')
+      b.add_source(PosixCommandLineSource, :usage, 'foo')
       b.add_choice(:targets) { |command_line |
         command_line.uses_arg
       }
@@ -145,7 +145,7 @@ class TestDefaultsAndTypes < Test::Unit::TestCase
   def test_extra_optional_arg_is_caught_by_command_line
     with_command_args("one extra") {
       b = ChoicesBuilder.new
-      b.add_source(CommandLineSource, :usage, 'foo')
+      b.add_source(PosixCommandLineSource, :usage, 'foo')
       b.add_choice(:targets) { |command_line |
         command_line.uses_optional_arg
       }

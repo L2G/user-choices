@@ -54,7 +54,7 @@ module UserChoices
       source = source_class.new
       message_sends(messages_and_args).each { | send_me | source.send(*send_me) }
       @sources << source
-      @command_line_source = source if source_class == CommandLineSource
+      @command_line_source = source if source_class <= CommandLineSource
     end
 
     # Once sources and choices have been described, this builds and
