@@ -1,3 +1,11 @@
+Version 1.1.3
+  * Bugfix: PosixCommandLineSource was not uniformly treated as a 	
+    CommandLineSource.
+  * activesupport includes xmlsimple in its vendor directory, which can 
+    lead to "constant already defined" warnings. Don't require xmlsimple
+    if it's already been required under a different name. We bow before you,
+    ActiveSupport!
+
 Version 1.1.2
   * Another stupid typo.
 

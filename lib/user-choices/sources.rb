@@ -1,4 +1,4 @@
-require 'xmlsimple'
+require 'xmlsimple' unless self.class.const_defined?("XmlSimple") # ActiveSupport includes it in /vendor. Grr.
 require 'yaml'
 require 's4t-utils'
 include S4tUtils

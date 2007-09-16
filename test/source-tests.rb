@@ -387,7 +387,7 @@ class YamlConfigFileSourceTestCase < Test::Unit::TestCase
     | host:
     |   - a.com
     |   - b.com
-    | listarg: 1,2, 3
+    | list-arg: 1,2, 3
     ".trim('|')
   end
   
@@ -423,7 +423,7 @@ class YamlConfigFileSourceTestCase < Test::Unit::TestCase
       assert_equal("true", choices[:reverse])
       assert_equal("53", choices[:maximum])
       assert_equal(['a.com', 'b.com'], choices[:host])
-      assert_equal("1,2, 3", choices[:listarg])
+      assert_equal("1,2, 3", choices[:list_arg])
     }
   end
 
