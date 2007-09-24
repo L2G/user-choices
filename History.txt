@@ -1,5 +1,5 @@
 Version 1.1.4
-  * Added ChoicesBuilder#separator
+  * Added ChoicesBuilder#add_help_line and ChoicesBuilder#section.
 
 Version 1.1.3
   * Bugfix: PosixCommandLineSource was not uniformly treated as a 	

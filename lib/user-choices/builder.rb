@@ -65,6 +65,17 @@ module UserChoices
       }
       @command_line_source.add_help_line(string)
     end
+    
+    # Demarcate a section of help text. It begins with the _description_, 
+    # ends with a dashed line.
+    def section(description)
+      add_help_line("... " + description + ":")
+      yield
+      add_help_line("---------------------------------")
+      add_help_line('')
+    end
+    
+    
 
     # Once sources and choices have been described, this builds and
     # returns a hash-like object indexed by the choices.

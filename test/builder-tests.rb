@@ -445,9 +445,11 @@ class TestCommandLineConstruction < Test::Unit::TestCase
                        "Usage: prog [options]",
                        "This is supplemental.")
 
-          b.add_choice(:test) { | command_line |
+          b.add_choice(:test, :type => :boolean) { | command_line |
             command_line.uses_switch("--test",
                                      "Here's text for a switch")
+          }
+          b.add_choice(:renew) { | command_line |
             command_line.uses_option("-r", "--renew VALUE",
                                      "Here's text for an option")
           }
@@ -480,8 +482,6 @@ class TestCommandLineConstruction < Test::Unit::TestCase
           b.add_choice(:test) { | command_line |
             command_line.uses_switch("--test",
                                      "Here's text for a switch")
-            command_line.uses_option("-r", "--renew VALUE",
-                                     "Here's text for an option")
           }
           b.build
         end
@@ -492,6 +492,41 @@ class TestCommandLineConstruction < Test::Unit::TestCase
 
       assert(l1 < l2)
       assert(l2 < l3)
+    }
+  end
+  
+  def test_builder_can_group_help_text_in_sections
+    with_command_args('--help') {
+      output = capturing_stderr do
+        assert_wants_to_exit do
+          b = ChoicesBuilder.new
+          b.add_source(CommandLineSource, :usage,
+                       "Usage: prog [options]",
+                       "This is supplemental.")
+
+          b.section("section head") do 
+            b.add_choice(:test) { | command_line |
+              command_line.uses_switch("--test",
+                                       "Here's text for a switch")
+            }
+          end
+          b.add_choice(:renew) { | command_line |
+            command_line.uses_option("-r", "--renew VALUE",
+                                     "Here's text for an option")
+          }
+          b.build
+        end
+      end
+      assert(l1 = output.index("This is supplemental"))
+      assert(l2 = output.index(/section head/))
+      assert(l3 = output.index(/--\[no-\]test.*Here's text for a switch/))
+      assert(l4 = output.index(/---------/))
+      assert(l5 = output.index(/Here's text for an option/))
+
+      assert(l1 < l2)
+      assert(l2 < l3)
+      assert(l3 < l4)
+      assert(l4 < l5)
     }
   end
   
