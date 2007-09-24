@@ -92,7 +92,11 @@ module UserChoices # :nodoc
       use_strategy(choice, OneOptionalArg)
     end
 
-
+    # Add a single line composed of _string_ to the current position in the
+    # help output.
+    def add_help_line(string)
+      @parser.separator(string)
+    end
 
 
     # Public for testing.
@@ -123,10 +127,11 @@ module UserChoices # :nodoc
     def help_banner(banner, *more)    # :nodoc: 
       @parser.banner = banner
       more.each do | line |
-        @parser.separator(line)
+        add_help_line(line)
       end
-      @parser.separator ''
-      @parser.separator 'Options:'
+      
+      add_help_line ''
+      add_help_line 'Options:'
 
       @parser.on_tail("-?", "-h", "--help", "Show this message.") do
         help

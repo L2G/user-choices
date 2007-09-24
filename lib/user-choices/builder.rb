@@ -56,6 +56,15 @@ module UserChoices
       @sources << source
       @command_line_source = source if source_class <= CommandLineSource
     end
+    
+    # Add a single line composed of _string_ to the current position in the
+    # help output.
+    def add_help_line(string)
+      user_claims(@command_line_source) {
+        "Can't use 'add_help_string' when there's no command line source."
+      }
+      @command_line_source.add_help_line(string)
+    end
 
     # Once sources and choices have been described, this builds and
     # returns a hash-like object indexed by the choices.

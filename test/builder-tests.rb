@@ -467,103 +467,130 @@ class TestCommandLineConstruction < Test::Unit::TestCase
     }
   end
   
-  class TestSpecialCases  < Test::Unit::TestCase
-    include UserChoices
-    
-    def test_environment_choices_can_be_given_prefix_and_mapping
-      with_environment_vars("prefix_e" =>  "e", "HOME" => '/Users/marick') {
-        b = ChoicesBuilder.new
-        b.add_source(EnvironmentSource, :with_prefix, "prefix_", :mapping, {:home => "HOME" })
-        b.add_choice(:e)
-        b.add_choice(:home)
-        choices = b.build
-        assert_equal("e", choices[:e])
-        assert_equal("/Users/marick", choices[:home])
-      }
-      
-    end
-    
-    
-    def test_required_arg_with_type_conversion
-      with_command_args("2") {
-        b = ChoicesBuilder.new
-        b.add_source(CommandLineSource, :usage, "blah")
-        b.add_choice(:e, :type => :integer) { |command_line | 
-          command_line.uses_arg
-        }
-        choices = b.build
-        assert_equal(2, choices[:e])
-      }
-    end
+  def test_builder_can_add_separators_to_help_text
+    with_command_args('--help') {
+      output = capturing_stderr do
+        assert_wants_to_exit do
+          b = ChoicesBuilder.new
+          b.add_source(CommandLineSource, :usage,
+                       "Usage: prog [options]",
+                       "This is supplemental.")
 
-    def test_required_arg_conversion_prints_right_message
-      with_command_args("b") {
-        b = ChoicesBuilder.new
-        b.add_source(CommandLineSource, :usage, "blah")
-        b.add_choice(:e, :type => :integer) { |command_line | 
-          command_line.uses_arg
-        }
-        output = capturing_stderr do
-          assert_wants_to_exit do    
-            b.build
-          end
+          b.add_help_line("==============")
+          b.add_choice(:test) { | command_line |
+            command_line.uses_switch("--test",
+                                     "Here's text for a switch")
+            command_line.uses_option("-r", "--renew VALUE",
+                                     "Here's text for an option")
+          }
+          b.build
         end
-        assert_no_match(/^Error in the command line: Error in the command line: /, output)
-      }
-    end
+      end
+      assert(l1 = output.index("This is supplemental"))
+      assert(l2 = output.index(/==============/))
+      assert(l3 = output.index(/--\[no-\]test.*Here's text for a switch/))
 
-    def test_optional_arg_with_type_conversion
-      with_command_args('2') {
-        b = ChoicesBuilder.new
-        b.add_source(CommandLineSource, :usage, "blah")
-        b.add_choice(:e, :type => :integer) { |command_line | 
-          command_line.uses_optional_arg
-        }
-        choices = b.build
-        assert_equal(2, choices[:e])
-      }
-    end
-
-    def test_missing_optional_arg_with_type_conversion_is_OK
-      # The type check applies only if the value is given.
-      with_command_args('') {
-        b = ChoicesBuilder.new
-        b.add_source(CommandLineSource, :usage, "blah")
-        b.add_choice(:e, :type => :integer) { |command_line | 
-          command_line.uses_optional_arg
-        }
-        assert_equal(nil, b.build[:e])
-      }
-    end
-
+      assert(l1 < l2)
+      assert(l2 < l3)
+    }
   end
-
-
-  class TestUtilities  < Test::Unit::TestCase
-    include UserChoices
-    
-    def setup
-      @builder = ChoicesBuilder.new
-    end
-    
-    def test_message_send_splitter
-      assert_equal([[:usage, 'arg']], 
-                   @builder.message_sends([:usage, 'arg']))
-      assert_equal([[:usage, 'arg1', 2]], 
-                   @builder.message_sends([:usage, 'arg1', 2]))
-      assert_equal([[:msg, 'arg1', 2], [:next, 1]], 
-                   @builder.message_sends([:msg, 'arg1', 2, :next, 1]))
-      # a common case
-      assert_equal([[:with_prefix, 'p_'], [:mapping, {:home => 'home'}]],
-                   @builder.message_sends([:with_prefix, 'p_', :mapping, {:home => 'home'}]))
-    end
-    
-    def test_symbol_indices
-      assert_equal([0, 3], @builder.symbol_indices([:foo, 1, 2, :bar, "quux"]))
-    end
-  end
-
-
   
 end
+  
+class TestSpecialCases  < Test::Unit::TestCase
+  include UserChoices
+  
+  def test_environment_choices_can_be_given_prefix_and_mapping
+    with_environment_vars("prefix_e" =>  "e", "HOME" => '/Users/marick') {
+      b = ChoicesBuilder.new
+      b.add_source(EnvironmentSource, :with_prefix, "prefix_", :mapping, {:home => "HOME" })
+      b.add_choice(:e)
+      b.add_choice(:home)
+      choices = b.build
+      assert_equal("e", choices[:e])
+      assert_equal("/Users/marick", choices[:home])
+    }
+    
+  end
+  
+  
+  def test_required_arg_with_type_conversion
+    with_command_args("2") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineSource, :usage, "blah")
+      b.add_choice(:e, :type => :integer) { |command_line | 
+        command_line.uses_arg
+      }
+      choices = b.build
+      assert_equal(2, choices[:e])
+    }
+  end
+
+  def test_required_arg_conversion_prints_right_message
+    with_command_args("b") {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineSource, :usage, "blah")
+      b.add_choice(:e, :type => :integer) { |command_line | 
+        command_line.uses_arg
+      }
+      output = capturing_stderr do
+        assert_wants_to_exit do    
+          b.build
+        end
+      end
+      assert_no_match(/^Error in the command line: Error in the command line: /, output)
+    }
+  end
+
+  def test_optional_arg_with_type_conversion
+    with_command_args('2') {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineSource, :usage, "blah")
+      b.add_choice(:e, :type => :integer) { |command_line | 
+        command_line.uses_optional_arg
+      }
+      choices = b.build
+      assert_equal(2, choices[:e])
+    }
+  end
+
+  def test_missing_optional_arg_with_type_conversion_is_OK
+    # The type check applies only if the value is given.
+    with_command_args('') {
+      b = ChoicesBuilder.new
+      b.add_source(CommandLineSource, :usage, "blah")
+      b.add_choice(:e, :type => :integer) { |command_line | 
+        command_line.uses_optional_arg
+      }
+      assert_equal(nil, b.build[:e])
+    }
+  end
+
+end
+
+
+class TestUtilities  < Test::Unit::TestCase
+  include UserChoices
+  
+  def setup
+    @builder = ChoicesBuilder.new
+  end
+  
+  def test_message_send_splitter
+    assert_equal([[:usage, 'arg']], 
+                 @builder.message_sends([:usage, 'arg']))
+    assert_equal([[:usage, 'arg1', 2]], 
+                 @builder.message_sends([:usage, 'arg1', 2]))
+    assert_equal([[:msg, 'arg1', 2], [:next, 1]], 
+                 @builder.message_sends([:msg, 'arg1', 2, :next, 1]))
+    # a common case
+    assert_equal([[:with_prefix, 'p_'], [:mapping, {:home => 'home'}]],
+                 @builder.message_sends([:with_prefix, 'p_', :mapping, {:home => 'home'}]))
+  end
+  
+  def test_symbol_indices
+    assert_equal([0, 3], @builder.symbol_indices([:foo, 1, 2, :bar, "quux"]))
+  end
+end
+
 
