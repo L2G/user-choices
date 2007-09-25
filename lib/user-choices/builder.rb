@@ -75,6 +75,15 @@ module UserChoices
       add_help_line('')
     end
     
+    # In groups of related commands, there are often choices that apply to
+    # all commands and choices that apply only to this particular command.
+    # Use this to define the latter.
+    def section_specific_to_script
+      section("specific to this script") do
+        yield
+      end
+    end
+    
     
 
     # Once sources and choices have been described, this builds and

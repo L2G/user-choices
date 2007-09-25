@@ -37,4 +37,3 @@ test/conversion-tests.rb
 test/set-standalone-test-paths.rb
 test/source-tests.rb
 test/user-choices-slowtests.rb
-user-choices.tmproj
