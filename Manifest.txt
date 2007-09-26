@@ -3,7 +3,6 @@ LICENSE.txt
 Manifest.txt
 README.txt
 Rakefile
-Rakefile.hoe
 examples/older/README.txt
 examples/older/command-line.rb
 examples/older/default-values.rb
@@ -34,6 +33,5 @@ test/arglist-strategy-tests.rb
 test/builder-tests.rb
 test/command-line-source-tests.rb
 test/conversion-tests.rb
-test/set-standalone-test-paths.rb
 test/source-tests.rb
 test/user-choices-slowtests.rb

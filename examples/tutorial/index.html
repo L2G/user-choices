@@ -214,6 +214,9 @@ if $0 == __FILE__ <br />
 		<b><code>builder.add_source(YamlConfigFileSource, <font style="color: #800020;">:from_file</font>, "filename")</code></b> says that the user choices are in a <a href="http://yaml.org/" title="YAML Ain't Markup Language">YAML</a> file named "filename" in the user's home directory. The home directory is found the same way RubyGems finds it. 
 		</p>
 		<p>
+			You can use <b><font style="color: #800020;">:from_complete_path</font></b> if your YAML file isn't in the home directory. In that case, the next argument is a path to the YAML file. It can be either relative or absolute. 
+		</p>
+		<p>
 			YAML files should contain a single level of keys and values. The values can be numbers, strings, and arrays of numbers or strings. Here is an acceptable file:
 			</p>
 			<blockquote>
@@ -236,6 +239,9 @@ if $0 == __FILE__ <br />
 	<dt><b><a name="xmlsource">XmlConfigFileSource</a></b></dt>
 	<dd>
 <p>	<b><code>builder.add_source(XmlConfigFileSource, <font style="color: #800020;">:from_file</font>, "filename")</code></b> says that the user choices are in a XML file named "filename" in the user's home directory. The home directory is found the same way RubyGems finds it. 
+	</p>
+	<p>
+		You can use <b><font style="color: #800020;">:from_complete_path</font></b> if your XML file isn't in the home directory. In that case, the next argument is a path to the XML file. It can be either relative or absolute. 
 	</p>
 	<p>
 		Here is an acceptable XML file:

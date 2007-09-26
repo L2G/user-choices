@@ -5,6 +5,7 @@ require 'user-choices'
 include S4tUtils
 set_test_paths(__FILE__)
 require 'extensions/string'
+require 'tempfile'
 
 
 # The general contract of these objects.
@@ -311,6 +312,15 @@ class FileSourceTestCase < Test::Unit::TestCase
       choices.apply(:maximum => [Conversion.for(:integer)])
       assert_equal(53, choices[:maximum])
     end
+  end
+  
+  def test_complete_paths_to_config_file_are_allowed
+    tempfile = Tempfile.new('path-test')
+    tempfile.puts(@some_xml)
+    tempfile.close
+    choices = XmlConfigFileSource.new.from_complete_path(tempfile.path)
+    choices.fill
+    assert_equal('53', choices[:maximum])
   end
 
 

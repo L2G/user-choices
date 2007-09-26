@@ -152,7 +152,11 @@ module UserChoices   # :nodoc
   class FileSource < AbstractSource # :nodoc: 
 
     def from_file(filename)
-      @path = File.join(S4tUtils.find_home, filename)
+      from_complete_path(File.join(S4tUtils.find_home, filename))
+    end
+    
+    def from_complete_path(path)
+      @path = path
       @contents_as_hash = self.read_into_hash
       @contents_as_hash.each do | external_name, value |
         sym = external_name.to_inputable_sym
