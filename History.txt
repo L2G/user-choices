@@ -1,6 +1,7 @@
 Version 1.1.4 -- in progress
   * Enable better command_line documentation: ChoicesBuilder#add_help_line,
  	ChoicesBuilder#section, ChoicesBuilder#section_specific_to_script.
+  * One Rakefile instead of two.
 
 Version 1.1.3
   * Bugfix: PosixCommandLineSource was not uniformly treated as a 	
