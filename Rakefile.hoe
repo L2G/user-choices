@@ -17,8 +17,19 @@ Hoe.new("user-choices", UserChoices::Version) do |p|
                   ['s4t-utils', '>= 1.0.2'],
                   ['extensions', '>= 0.6.0'],    # for testing
                   ['builder', '>= 2.1.2']]        # for testing
-  p.test_globs = "test/**/*-tests.rb"
+  p.test_globs = "test/**/*tests.rb"
   p.rdoc_pattern = %r{README.txt|History.txt|lib/user-choices.rb|lib/user-choices/.+\.rb}
   p.url = "http://user-choices.rubyforge.org"
   p.remote_rdoc_dir = 'rdoc'
+end
+
+require 's4t-utils/rake-task-helpers'
+desc "Run fast tests."
+task 'fast' do
+  S4tUtils.run_particular_tests('test', 'fast')
+end
+
+desc "Run slow tests."
+task 'slow' do
+  S4tUtils.run_particular_tests('test', 'slow')
 end

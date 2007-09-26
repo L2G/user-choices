@@ -3,11 +3,11 @@
 #  Created by Brian Marick on 2007-08-06.
 #  Copyright (c) 2007. All rights reserved.
 
-load "set-standalone-test-paths.rb" unless $started_from_rakefile
 require 'test/unit'
 require 's4t-utils'
 require 'user-choices'
 include S4tUtils
+set_test_paths(__FILE__)
 
 
 class TestDefaultsAndTypes < Test::Unit::TestCase

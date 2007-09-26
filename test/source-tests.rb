@@ -1,9 +1,9 @@
-load "set-standalone-test-paths.rb" unless $started_from_rakefile
 require 'test/unit'
 require 's4t-utils'
 require 'builder'
 require 'user-choices'
 include S4tUtils
+set_test_paths(__FILE__)
 require 'extensions/string'
 
 

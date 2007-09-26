@@ -3,12 +3,12 @@
 #  Created by Brian Marick on 2007-08-10.
 #  Copyright (c) 2007. All rights reserved.
 
-load "set-standalone-test-paths.rb" unless $started_from_rakefile
 require 'test/unit'
 require 's4t-utils'
 require 'builder'
 require 'user-choices/arglist-strategies'
 include S4tUtils
+set_test_paths(__FILE__)
 
 # Since ArglistStrategies were extracted from CommandLineSource, most
 # of the testing is implicit.

@@ -1,8 +1,8 @@
-load "set-standalone-test-paths.rb" unless $started_from_rakefile
 require 'test/unit'
 require 's4t-utils'
 require 'user-choices'
 include S4tUtils
+set_test_paths(__FILE__)
 
 
 class TestDefaultsAndTypes < Test::Unit::TestCase
