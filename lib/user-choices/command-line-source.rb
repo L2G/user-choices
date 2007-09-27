@@ -3,7 +3,6 @@ require 's4t-utils'
 require 'user-choices/sources.rb'
 require 'user-choices/arglist-strategies'
 include S4tUtils
-require 'extensions/string'
 
 module UserChoices # :nodoc
 
@@ -160,7 +159,7 @@ module UserChoices # :nodoc
       rescue SystemExit
         raise
       rescue Exception => ex
-        message = if ex.message.starts_with?(error_prefix)
+        message = if ex.message.has_exact_prefix?(error_prefix)
                     ex.message
                   else
                     error_prefix + ex.message

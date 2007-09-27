@@ -14,8 +14,7 @@ Hoe.new("user-choices", UserChoices::Version) do |p|
   p.summary = p.description
   p.email = "marick@exampler.com"
   p.extra_deps = [['xml-simple', '>= 1.0.11'], 
-                  ['s4t-utils', '>= 1.0.2'],
-                  ['extensions', '>= 0.6.0'],    # for testing
+                  ['s4t-utils', '>= 1.0.3'],
                   ['builder', '>= 2.1.2']]        # for testing
   p.test_globs = "test/**/*tests.rb"
   p.rdoc_pattern = %r{README.txt|History.txt|lib/user-choices.rb|lib/user-choices/.+\.rb}

@@ -4,7 +4,6 @@ require 'builder'
 require 'user-choices'
 include S4tUtils
 set_test_paths(__FILE__)
-require 'extensions/string'
 require 'tempfile'
 
 
@@ -398,7 +397,7 @@ class YamlConfigFileSourceTestCase < Test::Unit::TestCase
     |   - a.com
     |   - b.com
     | list-arg: 1,2, 3
-    ".trim('|')
+    ".without_pretty_indentation('|')
   end
   
   def test_string_assurance
