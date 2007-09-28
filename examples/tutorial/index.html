@@ -6,18 +6,37 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 
 	<title>Using User-Choices</title>
+	<link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
 	
 </head>
  
 <body>
-<h1 style="text-align: center">Using the User-Choices gem</h1>
-<p style="text-align: center"><a href="http://www.exampler.com/blog/" title="Exploration Through Example - Brian Marick's Blog">Brian Marick</a>, <a href="http://www.exampler.com" title="Exampler Consulting">Exampler Consulting</a></p>
+	<div id="pageBody">
+		<div id="outer-container">
+			<div id="container">
+			<div id="header">
+				<div id="headerLeft"></div>
+				<div id="headerRight"><h1>User Choices</h1><span class="highlight"><h2>Act always to increase the number of choices <br /> &mdash; Heinz von Foerster</h2></span></div>
+			</div>
+			<div id="headerNav">
+					<div id="centerNav">
+					<ul>
+							<li id="current"><a href="index.html">Home</a></li>
+							<li><a href="http://user-choices.rubyforge.org/rdoc/">RDoc</a></li>
+							<li><a href="http://rubyforge.org/frs/?group_id=4192">Download</a></li>
+					</ul>
+					</div>
+			</div>
+			<div id="content">
+  
+	
+	
 
 <p>
-	Suppose you have a command-line application that uses some number of, oh, let's say "connections". Most of the time, a user will want the same number of connections, so you'll let them set a personal default in a <em>configuration file</em>. Sometimes they want to change the default. Maybe they'll want a one-time change; for that, a <em>command-line option</em> is best. But sometimes they'll want to make the change for an entire login session; for that, setting an <em>environment variable</em> is most convenient.
+	Suppose you have a command-line application that uses some number of, oh, let's say "connections". Most of the time, a user will want the same number of connections, so you'll let them set a personal default in a <strong>configuration file</strong>. Sometimes they want to change the default. Maybe they'll want a one-time change; for that, a <strong>command-line option</strong> is best. But sometimes they'll want to make the change for an entire login session; for that, setting an <strong>environment variable</strong> is most convenient.
 </p>
 <p>
-	The User-Choices gem gives your code a unified interface to all those <em>sources</em>. Your code can obey the user's choices without having to bother (much) about how she made them.
+	<strong>The User-Choices gem gives your code a unified interface to all those sources.</strong> Your code can obey the user's choices without having to bother (much) about how she made them.
 </p>
 
 <p>
@@ -78,7 +97,7 @@ if $0 == __FILE__ <br />
 
 <blockquote>
 	<code>
-		$ ruby tutorial1.rb<br/>
+		$ ruby <a href="tutorial1.rb">tutorial1.rb</a><br/>
 		There are 0 connections.<br/>
 		{:connections=>0}<br/>
 	</code>
@@ -301,12 +320,12 @@ if $0 == __FILE__ <br />
 </p>
 <blockquote><table bgcolor="white" border="0"><tr><td>
 <code>
-&nbsp;&nbsp;<font style="color: #002FBD;">def</font> <font style="color: #600080;">add_choices</font>(builder) <br />
-&nbsp;&nbsp;&nbsp;&nbsp;builder.add_choice(<font style="color: #800020;">:connections</font>, <font style="color: #800020;">:type</font>=><font style="color: #800020;">:integer</font>, :<font style="color: #800020;">default</font>=>0) { | command_line | <br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;command_line.uses_option("-c", "--connections COUNT", <br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Number of connections to open.") <br />
-&nbsp;&nbsp;&nbsp;&nbsp;} <br />
-&nbsp;&nbsp;<font style="color: #002FBD;">end</font> <br />
+<font style="color: #002FBD;">def</font> <font style="color: #600080;">add_choices</font>(builder) <br />
+&nbsp;&nbsp;builder.add_choice(<font style="color: #800020;">:connections</font>, <font style="color: #800020;">:type</font>=><font style="color: #800020;">:integer</font>, :<font style="color: #800020;">default</font>=>0) { | command_line | <br />
+&nbsp;&nbsp;&nbsp;&nbsp;command_line.uses_option("-c", "--connections COUNT", <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Number of connections to open.") <br />
+&nbsp;&nbsp;} <br />
+<font style="color: #002FBD;">end</font> <br />
 </code>
 
 </td></tr></table></blockquote>
@@ -410,10 +429,10 @@ if $0 == __FILE__ <br />
 		
 		<blockquote><table bgcolor="white" border="0"><tr><td>
 		<code>
-		&nbsp;&nbsp;&nbsp;&nbsp;builder.add_choice(<font style="color: #800020;">:ssh</font>, <font style="color: #800020;">:type</font>=><font style="color: #800020;">:boolean</font>, :<font style="color: #800020;">default</font>=>false) { | command_line | <br />
-		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;command_line.uses_switch("-s", "--ssh", <br />
-		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Use ssh to open connection.") <br />
-		&nbsp;&nbsp;&nbsp;&nbsp;} <br />
+		&nbsp;&nbsp;builder.add_choice(<font style="color: #800020;">:ssh</font>, <font style="color: #800020;">:type</font>=><font style="color: #800020;">:boolean</font>, :<font style="color: #800020;">default</font>=>false) { | command_line | <br />
+		&nbsp;&nbsp;&nbsp;&nbsp;command_line.uses_switch("-s", "--ssh", <br />
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"Use ssh to open connection.") <br />
+		&nbsp;&nbsp;} <br />
 		</code>
 		
 		</td></tr></table></blockquote>
@@ -423,7 +442,7 @@ if $0 == __FILE__ <br />
 
 		
 		<blockquote><code>
-			$ ruby tutorial2.rb --ssh<br />
+			$ ruby <a href="tutorial2.rb">tutorial2.rb</a> --ssh<br />
 			SSH should be used. <br />
 			$ ruby tutorial2.rb --s file <br />
 			SSH should be used. <br />
@@ -471,7 +490,7 @@ if $0 == __FILE__ <br />
 		</td></tr></table></blockquote>
 		
 		<blockquote><code>
-		 $ ruby tutorial3.rb arg1 arg2 <br />
+		 $ ruby <a href="tutorial3.rb">tutorial3.rb</a> arg1 arg2 <br />
 		SSH should not be used. <br />
 		There are 19 connections. <br />
 		{<b>:files=>["arg1", "arg2"]</b>, :ssh=>false, :connections=>19} <br />
@@ -526,7 +545,7 @@ There are 19 connections. <br />
 </td></tr></table></blockquote>
 
 <blockquote><code>
-	 $ ruby tutorial4.rb 1 2 3 <br />
+	 $ ruby <a href="tutorial4.rb">tutorial4.rb</a> 1 2 3 <br />
 	<b>Error in the command line: 3 arguments given, 1 or 2 expected.</b> <br />
 	Usage: ruby tutorial4.rb [options] file1 [file2] <br />
  <br />
@@ -563,7 +582,7 @@ There are 19 connections. <br />
 		</td></td></table></blockquote>
 		
 		<blockquote><code>
-			$ ruby tutorial5.rb 1 <br />
+			$ ruby <a href="tutorial5.rb">tutorial5.rb</a> 1 <br />
 			{:infile=>"1"} <br />
 			$ ruby tutorial5.rb <br />
 			Error in the command line: 0 arguments given, 1 expected. <br />
@@ -591,7 +610,7 @@ There are 19 connections. <br />
 		</td></td></table></blockquote>
 
 			<blockquote><code>
-				 $ ruby tutorial6.rb <br />
+				 $ ruby <a href="tutorial6.rb">tutorial6.rb</a> <br />
 				{} <br />
 			</code></blockquote>			
 	</dd>
@@ -637,7 +656,7 @@ There are 19 connections. <br />
 	</td></tr></table></blockquote>
 	
 	<blockquote><code>
-		 $ ruby tutorial7.rb one two <br />
+		 $ ruby <a href="tutorial7.rb">tutorial7.rb</a> one two <br />
 		{:outfile=>"two", :files=>["one", "two"], :infile=>"one"} <br />	</code></blockquote>			
 
 <p>There's no need to call <code>postprocess_user_choices</code> yourself. It's done automatically.</p>	
@@ -650,5 +669,13 @@ There are 19 connections. <br />
 		</p>
 	</li>
 </ul>
+
+
+
+        </div>
+        </div>
+	</div>
+</div>
+
 </body>
 </html>
