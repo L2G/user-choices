@@ -2,6 +2,7 @@ Version 1.1.5
   * Improved example files so that they don't include old S4TUtils load-path
     setting. Not needed by the people who'll use them. 
   * Example slowtests didn't set the libpath, so they used the gem version.
+  * Better release process Rakefile.
 
 Version 1.1.4
   * Enable better command_line documentation: ChoicesBuilder#add_help_line,
