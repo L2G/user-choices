@@ -9,7 +9,8 @@ require 'lib/user-choices/version'
 PROJECT='user-choices'
 THIS_RELEASE=UserChoices::Version
 ROOT = "svn+ssh://marick@rubyforge.org/var/svn/#{PROJECT}"
-EXPORTS="#{ENV['HOME']}/tmp/exports"
+ALL_EXPORTS="#{ENV['HOME']}/tmp/exports"
+PROJECT_EXPORTS = "#{ALL_EXPORTS}/#{PROJECT}"
 
 
 Hoe.new(PROJECT, THIS_RELEASE) do |p|
@@ -39,13 +40,19 @@ task 'slow' do
   S4tUtils.run_particular_tests('test', 'slow')
 end
 
-desc "Upload all the web pages"
-task 'upload_pages' => ['export'] do
-  Dir.chdir("#{EXPORTS}/#{PROJECT}") do
-    exec = "scp -r tutorial/* marick@rubyforge.org:/var/www/gforge-projects/#{PROJECT}/"
-    puts exec
-    system(exec)
+def assert_in_exports(taskname)
+  unless Dir.pwd == PROJECT_EXPORTS
+    puts "Run task '#{taskname}' from export directory: " + PROJECT_EXPORTS
+    exit 1
   end
+end
+
+desc "Upload all the web pages"
+task 'upload_pages' do | task |
+  assert_in_exports task.name
+  exec = "scp -r tutorial/* marick@rubyforge.org:/var/www/gforge-projects/#{PROJECT}/"
+  puts exec
+  system(exec)
 end
 
 desc "Tag release with current version."
@@ -60,7 +67,7 @@ end
 
 desc "Export to ~/tmp/exports/#{PROJECT}"
 task 'export' do 
-  Dir.chdir(EXPORTS) do
+  Dir.chdir(ALL_EXPORTS) do
     rm_rf PROJECT
     exec = "svn export #{ROOT}/trunk #{PROJECT}"
     puts exec
@@ -81,10 +88,11 @@ task 'release_everything' do
   step 'check_manifest'
   step 'test'
   step 'export'
-  Dir.chdir("#{EXPORTS}/#{PROJECT}") do
-    step 'release'
+  Dir.chdir("#{ALL_EXPORTS}/#{PROJECT}") do
+    puts "Working in #{Dir.pwd}"
+    step 'release' 
     step 'upload_pages'
     step 'publish_docs'
   end
-  step 'export'
+  step 'tag_release'
 end
