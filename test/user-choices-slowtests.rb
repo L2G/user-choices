@@ -12,8 +12,9 @@ class Examples < Test::Unit::TestCase
     eval(result)
   end
 
-  EX = "ruby #{PACKAGE_ROOT}/examples/older/"
-  TUT = "ruby #{PACKAGE_ROOT}/examples/tutorial/"
+  LIB="-I#{PACKAGE_ROOT}/lib"
+  EX = "ruby #{LIB} #{PACKAGE_ROOT}/examples/older/"
+  TUT = "ruby #{LIB} #{PACKAGE_ROOT}/examples/tutorial/"
 
   require "#{PACKAGE_ROOT}/examples/older/command-line"
   # require "#{PACKAGE_ROOT}/examples/default-values" # not needed
@@ -22,6 +23,7 @@ class Examples < Test::Unit::TestCase
   require "#{PACKAGE_ROOT}/examples/older/switches"
   require "#{PACKAGE_ROOT}/examples/older/two-args"
   require "#{PACKAGE_ROOT}/examples/older/types"
+  
 
 
   def test_succeeding_examples
