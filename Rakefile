@@ -6,8 +6,12 @@
 require 'hoe'
 require 'lib/user-choices/version'
 
-Hoe.new("user-choices", UserChoices::Version) do |p|
-  p.rubyforge_name = "user-choices"
+PROJECT='user-choices'
+THIS_RELEASE=UserChoices::Version
+ROOT = "svn+ssh://marick@rubyforge.org/var/svn/#{PROJECT}"
+
+Hoe.new(PROJECT, THIS_RELEASE) do |p|
+  p.rubyforge_name = PROJECT
   p.changes = "See History.txt"
   p.author = "Brian Marick"
   p.description = "Unified interface to command-line, environment, and configuration files."
@@ -31,4 +35,24 @@ end
 desc "Run slow tests."
 task 'slow' do
   S4tUtils.run_particular_tests('test', 'slow')
+end
+
+desc "Tag release with current version."
+task 'tag_release' do
+  from = "#{ROOT}/trunk"
+  to = "#{ROOT}/tags/rel-#{THIS_RELEASE}"
+  message = "Release #{THIS_RELEASE}"
+  exec = "svn copy -m '#{message}' #{from} #{to}"
+  puts exec
+  system(exec)
+end
+
+desc "Export to ~/tmp/exports/#{PROJECT}"
+task 'export' do 
+  Dir.chdir("#{ENV['HOME']}/tmp/exports") do
+    rm_rf PROJECT
+    exec = "svn export #{ROOT}/trunk #{PROJECT}"
+    puts exec
+    system exec
+  end
 end
