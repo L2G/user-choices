@@ -1,4 +1,6 @@
-Version 1.1.4 -- in progress
+Version 1.1.5 -- in progress
+
+Version 1.1.4
   * Enable better command_line documentation: ChoicesBuilder#add_help_line,
  	ChoicesBuilder#section, ChoicesBuilder#section_specific_to_script.
   * One Rakefile instead of two.
