@@ -50,7 +50,7 @@ end
 desc "Upload all the web pages"
 task 'upload_pages' do | task |
   assert_in_exports task.name
-  exec = "scp -r tutorial/* marick@rubyforge.org:/var/www/gforge-projects/#{PROJECT}/"
+  exec = "scp -r examples/tutorial/* marick@rubyforge.org:/var/www/gforge-projects/#{PROJECT}/"
   puts exec
   system(exec)
 end
