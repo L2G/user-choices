@@ -84,15 +84,16 @@ end
 
 desc "Complete release of everything - asks for confirmation after steps"
 # Because in Ruby 1.8.6, Rake doesn't notice subtask failures.
-task 'release_everything' do
+task 'release_everything' do  
   step 'check_manifest'
   step 'test'
   step 'export'
   Dir.chdir("#{ALL_EXPORTS}/#{PROJECT}") do
     puts "Working in #{Dir.pwd}"
-    step 'release' 
     step 'upload_pages'
     step 'publish_docs'
+    ENV['VERSION'] = THIS_RELEASE
+    step 'release' 
   end
   step 'tag_release'
 end
