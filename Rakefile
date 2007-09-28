@@ -68,11 +68,23 @@ task 'export' do
   end
 end
 
-desc "Complete release of everything"
-task 'release_everything' => ['test', 'check_manifest', 'export', 'tag_release'] do
+def step(name)
+  STDOUT.puts "** #{name} **"
+  STDOUT.puts `rake #{name}`
+  STDOUT.print 'OK? > '
+  exit if STDIN.readline =~ /[nN]/
+end
+
+desc "Complete release of everything - asks for confirmation after steps"
+# Because in Ruby 1.8.6, Rake doesn't notice subtask failures.
+task 'release_everything' do
+  step 'check_manifest'
+  step 'test'
+  step 'export'
   Dir.chdir("#{EXPORTS}/#{PROJECT}") do
-    `rake release`
-    `rake upload_pages`
-    `rake publish_docs`
+    step 'release'
+    step 'upload_pages'
+    step 'publish_docs'
   end
+  step 'export'
 end
