@@ -1,4 +1,5 @@
 Version 1.1.6
+  * Allow a :string type conversion (user request). It does nothing.
 
 Version 1.1.5
   * Improved example files so that they don't include old S4TUtils load-path
