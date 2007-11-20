@@ -21,10 +21,11 @@ class TestDefaultsAndTypes < Test::Unit::TestCase
     Conversion.record_for(["one", "two"], start)
     Conversion.record_for({:length => 1}, start)
     Conversion.record_for({:length => 1..2}, start)
+    Conversion.record_for(:string, start)
     
     assert_equal([ConversionToInteger, ConversionToBoolean, 
                   SplittingConversion, ChoiceCheckingConversion,
-                  ExactLengthConversion, RangeLengthConversion],
+                  ExactLengthConversion, RangeLengthConversion, NoOpConversion],
                  start.collect { |c| c.class })
   end
 
@@ -33,7 +34,21 @@ class TestDefaultsAndTypes < Test::Unit::TestCase
     Conversion.record_for(nil, start)
     assert_equal([], start)
   end
-  
+
+  def test_string_conversion_checking
+    nop = Conversion.for(:string)
+    assert_true(nop.suitable?("hello"))
+    assert_true(nop.suitable?(1))   # Truly does no checking.
+    assert_equal('a string', nop.description)
+  end
+
+  def test_string_conversion
+    nop = Conversion.for(:string)
+    assert_equal("12", nop.convert("12"))
+  end
+
+
+
   def test_integer_conversion_checking
     c2i = Conversion.for(:integer)
     assert_true(c2i.suitable?("034"))

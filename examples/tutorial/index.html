@@ -341,8 +341,19 @@ if $0 == __FILE__ <br />
 <h3><a name="keywordargs"/>3.1 Keyword arguments for <code>add_choice</code></a></h3>
 <ul>
 	<li><p>
-		The <b><font style="color: #800020;">:type</font></b> keyword describes type checking and conversion that should be done. In all cases, it's fine if the conversion has already been done (which is often the case when a default value is given). If no <font style="color: #800020;">:type</font> argument is given, the choice stays a string.
+		The <b><font style="color: #800020;">:type</font></b>
+		keyword describes type checking and conversion that
+		should be done. If no <font
+		style="color: #800020;">:type</font> argument is
+		given, the choice stays a string. 
 		</p>
+
+  <p>
+    Default choices are handled generously. Suppose a particular
+    choice is to be an integer. You can specify the default value as
+    either the string <code>"1"</code> (in which case it will be converted to an
+    integer) or the integer <code>1</code> (in which case it will be left alone). 
+  </p>
 		
 		<p>
 		A <code>StandardError</code> is raised if the conversion can't be done. 
@@ -361,6 +372,14 @@ if $0 == __FILE__ <br />
 				Convert the string into either <code>true</code> or <code>false</code>. The string must be one of "true" or "false" (case-insensitive).
 			</p></dd>
 
+			<dt><font style="color: #800020;">:type</font>
+			=> <i>:string</i></dt> 
+			<dd><p>
+			   Leave the string alone. Since that's
+			   the default behavior, this case is only for
+			   convenience. 
+			</p></dd>
+
 			<dt><font style="color: #800020;">:type</font> => <b><font style="color: #800020;">[:string]</font></b></dt>
 				
 			<dd><p>
@@ -371,6 +390,8 @@ if $0 == __FILE__ <br />
 			<dd><p>
 				The value chosen must be one of the given strings. There's no conversion.
 			</p></dd>
+
+
 
 		</dl>
 	</li>

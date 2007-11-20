@@ -1,3 +1,5 @@
+Version 1.1.6
+
 Version 1.1.5
   * Improved example files so that they don't include old S4TUtils load-path
     setting. Not needed by the people who'll use them. 

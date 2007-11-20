@@ -4,13 +4,11 @@
 #  Copyright (c) 2007. All rights reserved.
 
 require 'hoe'
-require 'lib/user-choices/version'
+$:.unshift(File.join(Dir.pwd, "lib"))
+require 'user-choices/version'
 
 PROJECT='user-choices'
 THIS_RELEASE=UserChoices::Version
-ROOT = "svn+ssh://marick@rubyforge.org/var/svn/#{PROJECT}"
-ALL_EXPORTS="#{ENV['HOME']}/tmp/exports"
-PROJECT_EXPORTS = "#{ALL_EXPORTS}/#{PROJECT}"
 
 
 Hoe.new(PROJECT, THIS_RELEASE) do |p|
@@ -40,60 +38,8 @@ task 'slow' do
   S4tUtils.run_particular_tests('test', 'slow')
 end
 
-def assert_in_exports(taskname)
-  unless Dir.pwd == PROJECT_EXPORTS
-    puts "Run task '#{taskname}' from export directory: " + PROJECT_EXPORTS
-    exit 1
-  end
-end
-
-desc "Upload all the web pages"
-task 'upload_pages' do | task |
-  assert_in_exports task.name
-  exec = "scp -r examples/tutorial/* marick@rubyforge.org:/var/www/gforge-projects/#{PROJECT}/"
-  puts exec
-  system(exec)
-end
-
-desc "Tag release with current version."
-task 'tag_release' do
-  from = "#{ROOT}/trunk"
-  to = "#{ROOT}/tags/rel-#{THIS_RELEASE}"
-  message = "Release #{THIS_RELEASE}"
-  exec = "svn copy -m '#{message}' #{from} #{to}"
-  puts exec
-  system(exec)
-end
-
-desc "Export to ~/tmp/exports/#{PROJECT}"
-task 'export' do 
-  Dir.chdir(ALL_EXPORTS) do
-    rm_rf PROJECT
-    exec = "svn export #{ROOT}/trunk #{PROJECT}"
-    puts exec
-    system exec
-  end
-end
-
-def step(name)
-  STDOUT.puts "** #{name} **"
-  STDOUT.puts `rake #{name}`
-  STDOUT.print 'OK? > '
-  exit if STDIN.readline =~ /[nN]/
-end
-
-desc "Complete release of everything - asks for confirmation after steps"
-# Because in Ruby 1.8.6, Rake doesn't notice subtask failures.
-task 'release_everything' do  
-  step 'check_manifest'
-  step 'test'
-  step 'export'
-  Dir.chdir("#{ALL_EXPORTS}/#{PROJECT}") do
-    puts "Working in #{Dir.pwd}"
-    step 'upload_pages'
-    step 'publish_docs'
-    ENV['VERSION'] = THIS_RELEASE
-    step 'release' 
-  end
-  step 'tag_release'
-end
+require 's4t-utils/hoelike'
+HoeLike.new(:project => PROJECT, :this_release => THIS_RELEASE,
+            :login => "marick@rubyforge.org",
+            :web_site_root => 'examples/tutorial', 
+            :export_root => "#{S4tUtils.find_home}/tmp/exports")

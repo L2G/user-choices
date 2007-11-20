@@ -36,7 +36,18 @@ module UserChoices
     def convert(value); value; end  # Some conversions are just for error-checking
     def does_length_check?; false; end
   end
-  
+
+  class NoOpConversion < Conversion # :nodoc:
+    def self.described_by?(conversion_tag)
+      conversion_tag == :string
+    end
+
+    def description; "a string"; end
+    def suitable?(actual); true; end
+    def convert(value); value; end
+  end
+
+
   class ConversionToInteger < Conversion # :nodoc:
     def self.described_by?(conversion_tag)
       conversion_tag == :integer
