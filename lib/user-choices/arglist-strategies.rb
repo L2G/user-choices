@@ -145,9 +145,9 @@ module UserChoices # :nodoc:
     
     def fill(arglist)
       case arglist.length
-      when 0: # This is not considered an error because another source
+      when 0 then # This is not considered an error because another source
               # might fill in the value.
-      when 1: @value_holder[@choice] = arglist[0]
+      when 1 then @value_holder[@choice] = arglist[0]
       else user_is_bewildered(arglist_arity_error(arglist.length, self.arity))
       end
     end

@@ -60,7 +60,7 @@ module UserChoices   # :nodoc
     
     def pretty_value(value)
       case value
-      when Array: value.inspect
+      when Array then value.inspect
       else "'#{value}'"
       end
     end
@@ -262,8 +262,8 @@ module UserChoices   # :nodoc
 
     def ensure_element_is_string(collection, key)
       case collection[key]
-        when Hash: ensure_hash_values_are_strings(collection[key])
-        when Array: ensure_array_values_are_strings(collection[key])
+        when Hash then ensure_hash_values_are_strings(collection[key])
+        when Array then ensure_array_values_are_strings(collection[key])
         else collection[key] = collection[key].to_s
       end
     end

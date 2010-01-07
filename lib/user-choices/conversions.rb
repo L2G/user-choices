@@ -78,7 +78,7 @@ module UserChoices
     
     def convert(value)
       case value
-      when String: eval(value.downcase)
+      when String then eval(value.downcase)
       else value
       end
     end
@@ -97,8 +97,8 @@ module UserChoices
     
     def convert(value)
       case value
-      when String: value.split(',')
-      when Array: value
+      when String then value.split(',')
+      when Array then value
       end
     end
     
