@@ -23,7 +23,6 @@ Hoe.spec(PROJECT) do |spec|
                   ['s4t-utils', '>= 1.0.3'],
                   ['builder', '>= 2.1.2']]        # for testing
   spec.test_globs = "test/**/*tests.rb"
-  #spec.rdoc_pattern = %r{README.txt|History.txt|lib/user-choices.rb|lib/user-choices/.+\.rb}
   spec.extra_rdoc_files = ['README.txt', 'History.txt']
   spec.url = "http://user-choices.rubyforge.org"
   spec.remote_rdoc_dir = 'rdoc'
