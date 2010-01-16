@@ -11,20 +11,22 @@ PROJECT='user-choices'
 THIS_RELEASE=UserChoices::Version
 
 
-Hoe.new(PROJECT, THIS_RELEASE) do |p|
-  p.rubyforge_name = PROJECT
-  p.changes = "See History.txt"
-  p.author = "Brian Marick"
-  p.description = "Unified interface to command-line, environment, and configuration files."
-  p.summary = p.description
-  p.email = "marick@exampler.com"
-  p.extra_deps = [['xml-simple', '>= 1.0.11'], 
+Hoe.spec(PROJECT) do |spec|
+  spec.rubyforge_name = PROJECT
+  spec.version = THIS_RELEASE
+  spec.changes = "See History.txt"
+  spec.author = "Brian Marick"
+  spec.description = "Unified interface to command-line, environment, and configuration files."
+  spec.summary = spec.description
+  spec.email = "marick@exampler.com"
+  spec.extra_deps = [['xml-simple', '>= 1.0.11'],
                   ['s4t-utils', '>= 1.0.3'],
                   ['builder', '>= 2.1.2']]        # for testing
-  p.test_globs = "test/**/*tests.rb"
-  p.rdoc_pattern = %r{README.txt|History.txt|lib/user-choices.rb|lib/user-choices/.+\.rb}
-  p.url = "http://user-choices.rubyforge.org"
-  p.remote_rdoc_dir = 'rdoc'
+  spec.test_globs = "test/**/*tests.rb"
+  #spec.rdoc_pattern = %r{README.txt|History.txt|lib/user-choices.rb|lib/user-choices/.+\.rb}
+  spec.extra_rdoc_files = ['README.txt', 'History.txt']
+  spec.url = "http://user-choices.rubyforge.org"
+  spec.remote_rdoc_dir = 'rdoc'
 end
 
 require 's4t-utils/rake-task-helpers'

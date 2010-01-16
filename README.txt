@@ -1,1 +1,3 @@
-The best introduction to user-choices is the tutorial[http://user-choices.rubyforge.org].
+= user-choices
+
+* The best introduction to user-choices is the tutorial[http://user-choices.rubyforge.org].
